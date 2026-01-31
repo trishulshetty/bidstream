@@ -1,0 +1,53 @@
+bidstream/
+├── docker-compose.yml        # Orchestrates the whole orchestra
+├── backend/                  # Node.js + Express + Socket.io
+│   ├── Dockerfile
+│   ├── src/
+│   │   ├── redis/            # Redis connection & Lua scripts
+│   │   ├── sockets/          # Socket.io handlers
+│   │   ├── services/         # Auction logic
+│   │   └── index.ts
+│   └── package.json
+├── frontend/                 # React + Tailwind
+│   ├── Dockerfile
+│   ├── src/
+│   └── package.json
+├── worker/                   # (Optional later) Processes DB writes
+└── postgres_data/            # Persists DB data locally
+
+use vite bundler for frontend
+npm create vite@latest frontend -- --template react
+
+Backend packages initially
+npm install express pg bcryptjs jsonwebtoken cors dotenv cookie-parser nodemon
+
+install extension for postgres 
+
+switch command for postgres sudo -i -u postgres
+basic app.js template generally written in backend/src/app.js
+
+    const express = require('express');
+    const app= express();
+    const cors = require('cors');
+
+    app.use(express.json());
+    app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+
+    module.exports = app ; 
+
+
+(010226)
+//FRONTEND 
+created pages (in src)
+1.Login.jsx
+2.Lobby.jsx
+3.AuctionRoom.jsx
+
+//installed lucide-react (ready made scg icons like search,home,bell as React components)
+npm i lucide-react
+
+
+wrote the main app.jsx file 
+with routes for pages mentioned above
+
+we use react-router-dom for this
