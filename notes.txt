@@ -51,3 +51,11 @@ wrote the main app.jsx file
 with routes for pages mentioned above
 
 we use react-router-dom for this
+
+
+(2226)
+//started with writing backend
+//and plan to set up auth 
+and frontend backend integration for the same
+
+bcrypt = used to hash the password to be stored in DB
