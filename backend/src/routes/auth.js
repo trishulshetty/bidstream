@@ -2,20 +2,20 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const User = require('../models/userModel');
 
 // REGISTER
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { username, email, password, role } = req.body;
 
     // 1. validation
-    if (!name || !email || !password) {
+    if (!username || !email || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
     // 2. check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -25,17 +25,15 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // 4. save user
-    const user = new User({
-      name,
-      email,
-      password: hashedPassword
+    const user = await User.create(username, email, hashedPassword, role);
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: { id: user.id, username: user.username, email: user.email, role: user.role }
     });
 
-    await user.save();
-
-    res.status(201).json({ message: 'User registered successfully' });
-
   } catch (error) {
+    console.error('Register error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -51,21 +49,21 @@ router.post('/login', async (req, res) => {
     }
 
     // 2. check user
-    const user = await User.findOne({ email });
+    const user = await User.findByEmail(email);
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // 3. compare password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // 4. generate token
     const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET || 'fallback_secret',
       { expiresIn: '1d' }
     );
 
@@ -73,15 +71,18 @@ router.post('/login', async (req, res) => {
       message: 'Login successful',
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
       }
     });
 
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
 module.exports = router;
+
