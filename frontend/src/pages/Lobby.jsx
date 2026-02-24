@@ -56,10 +56,14 @@ const Lobby = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5001/api/auctions',
+      const res = await axios.post('http://localhost:5001/api/auctions',
         { ...newAuction, starting_price: parseFloat(newAuction.starting_price) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      const createdAuction = res.data;
+      alert(`Auction created successfully!\n\nAccess PIN: ${createdAuction.pin}\n\nShare this PIN with bidders so they can join the room.`);
+
       setShowCreate(false);
       fetchAuctions();
       setNewAuction({ title: '', description: '', starting_price: '', start_time: '', end_time: '' });

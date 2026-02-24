@@ -41,6 +41,12 @@ const auctionSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    pin: {
+        type: String,
+        required: true,
+        minlength: 6,
+        maxlength: 6
     }
 });
 

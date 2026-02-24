@@ -9,5 +9,6 @@ router.get('/:id', auctionController.getAuctionById);
 // Protected routes
 router.post('/', authMiddleware, auctionController.createAuction);
 router.post('/:id/bid', authMiddleware, auctionController.placeBid);
+router.post('/:id/end', authMiddleware, auctionController.endAuction);
 
 module.exports = router;

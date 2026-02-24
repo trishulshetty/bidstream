@@ -28,9 +28,26 @@ const PORT = process.env.PORT || 5001;
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('join_auction', (auctionId) => {
-        socket.join(`auction_${auctionId}`);
-        console.log(`User ${socket.id} joined auction ${auctionId}`);
+    socket.on('join_auction', async ({ auctionId, pin }) => {
+        try {
+            const Auction = require('./src/models/Auction');
+            const auction = await Auction.findById(auctionId);
+
+            if (!auction) {
+                return socket.emit('error', { message: 'Auction not found' });
+            }
+
+            if (auction.pin !== pin) {
+                return socket.emit('join_failed', { message: 'Incorrect PIN' });
+            }
+
+            socket.join(`auction_${auctionId}`);
+            socket.emit('join_success', { auctionId, pin: auction.pin });
+            console.log(`User ${socket.id} joined auction ${auctionId} with correct PIN`);
+        } catch (error) {
+            console.error('Socket join error:', error);
+            socket.emit('error', { message: 'Internal server error' });
+        }
     });
 
     socket.on('disconnect', () => {

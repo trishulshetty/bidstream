@@ -19,12 +19,18 @@ const AuctionRoom = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [auction, setAuction] = useState(null);
+  const [pin, setPin] = useState('');
+  const [isJoined, setIsJoined] = useState(false);
+  const [pinError, setPinError] = useState('');
+  const [verifiedPin, setVerifiedPin] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [bidHistory, setBidHistory] = useState([]);
   const [socket, setSocket] = useState(null);
   const role = localStorage.getItem('userRole');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('token');
+
+  const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
     const fetchAuction = async () => {
@@ -40,19 +46,84 @@ const AuctionRoom = () => {
     const newSocket = io('http://localhost:5001');
     setSocket(newSocket);
 
-    newSocket.on('connect', () => {
-      newSocket.emit('join_auction', id);
-    });
-
     newSocket.on('new_bid', (data) => {
       setBidHistory((prev) => [data, ...prev]);
       setAuction((prev) => ({ ...prev, current_price: data.amount }));
     });
 
+    newSocket.on('join_success', (data) => {
+      setIsJoined(true);
+      setVerifiedPin(data.pin);
+      setPinError('');
+    });
+
+    newSocket.on('join_failed', (data) => {
+      setPinError(data.message);
+    });
+
+    newSocket.on('error', (data) => {
+      alert(data.message);
+    });
+
+    newSocket.on('auction_status_update', (data) => {
+      if (data.auctionId === id) {
+        setAuction(prev => ({ ...prev, status: data.status }));
+        if (data.status === 'ended') {
+          alert('This auction has been ended by the auctioneer.');
+        }
+      }
+    });
+
     return () => newSocket.close();
   }, [id]);
 
+  useEffect(() => {
+    if (!auction || auction.status === 'ended') {
+      if (auction?.status === 'ended') setTimeLeft('AUCTION ENDED');
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const end = new Date(auction.end_time).getTime();
+      const distance = end - now;
+
+      if (distance < 0) {
+        setTimeLeft('AUCTION ENDED');
+        clearInterval(timer);
+        return;
+      }
+
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      setTimeLeft(
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      );
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [auction]);
+
+  const handleJoin = () => {
+    if (pin.length !== 6) return setPinError('PIN must be 6 digits');
+    socket.emit('join_auction', { auctionId: id, pin });
+  };
+
+  const stopBidding = async () => {
+    if (!window.confirm('Are you sure you want to end this auction? This action cannot be undone.')) return;
+    try {
+      await axios.post(`http://localhost:5001/api/auctions/${id}/end`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error ending auction');
+    }
+  };
+
   const placeBid = async () => {
+    if (auction.status === 'ended') return alert('Auction has ended');
     if (!bidAmount || isNaN(bidAmount)) return alert('Invalid amount');
     if (parseFloat(bidAmount) <= auction.current_price) {
       return alert('Bid must be higher than current price');
@@ -74,6 +145,39 @@ const AuctionRoom = () => {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: '20px' }}>
       <div style={{ width: '40px', height: '40px', border: '3px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       <span style={{ color: 'var(--text-muted)' }}>Entering secure bidding room...</span>
+    </div>
+  );
+
+  if (!isJoined) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-dark)' }}>
+      <div className="glass-card" style={{ maxWidth: '400px', width: '90%', padding: '40px', textAlign: 'center' }}>
+        <div style={{
+          width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(56, 189, 248, 0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: 'var(--primary)'
+        }}>
+          <ShieldAlert size={32} />
+        </div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '12px' }}>Locked Auction</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>This auction requires a 6-digit access PIN provided by the auctioneer.</p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <input
+            type="text"
+            maxLength="6"
+            placeholder="Enter 6-digit PIN"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5em', height: '64px' }}
+          />
+          {pinError && <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>{pinError}</p>}
+          <button onClick={handleJoin} className="btn-primary" style={{ height: '56px' }}>
+            Verify & Enter Room
+          </button>
+          <button onClick={() => navigate('/lobby')} className="btn-secondary">
+            Back to Lobby
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -99,10 +203,15 @@ const AuctionRoom = () => {
 
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>{auction.title}</h2>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Room ID: {id}</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+            <span>Room ID: {id}</span>
+            <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>PIN: {verifiedPin}</span>
+          </div>
         </div>
 
-        <div className="badge badge-success">Live Auction</div>
+        <div className={`badge ${auction.status === 'ended' ? 'badge-muted' : 'badge-success'}`}>
+          {auction.status === 'ended' ? 'Auction Ended' : 'Live Auction'}
+        </div>
       </nav>
 
       <main style={{ flex: 1, padding: '2rem', maxWidth: '1200px', margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2rem' }}>
@@ -129,14 +238,25 @@ const AuctionRoom = () => {
 
           {/* Controls */}
           <div className="glass-card" style={{ padding: '2rem' }}>
-            {role === 'auctioneer' ? (
+            {auction.status === 'ended' ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-muted)' }}>This auction has concluded.</h3>
+                <p>No further bids are accepted.</p>
+              </div>
+            ) : role === 'auctioneer' ? (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                   <ShieldAlert className="text-accent" />
                   <h3 style={{ fontSize: '1.25rem', fontWeight: '700' }}>Auctioneer Console</h3>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button className="btn-primary" style={{ flex: 1, background: '#ef4444' }}>Stop Bidding</button>
+                  <button
+                    onClick={stopBidding}
+                    className="btn-primary"
+                    style={{ flex: 1, background: '#ef4444' }}
+                  >
+                    Stop Bidding
+                  </button>
                   <button className="btn-secondary" style={{ flex: 1 }}>Extend Time</button>
                 </div>
               </div>
@@ -247,7 +367,7 @@ const AuctionRoom = () => {
               <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Time Remaining</span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: '900', fontFamily: 'monospace' }}>
-              00:42:18
+              {timeLeft}
             </div>
           </div>
         </div>

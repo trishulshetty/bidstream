@@ -8,7 +8,7 @@ const { redis, placeAtomicBid, setInitialPrice } = require('../utils/redis');
 exports.createAuction = async (req, res) => {
     try {
         const { title, description, starting_price, start_time, end_time } = req.body;
-        const userId = req.user.id;
+        const userId = req.user.id; const pin = Math.floor(100000 + Math.random() * 900000).toString();
 
         const auction = await Auction.create({
             title,
@@ -17,9 +17,9 @@ exports.createAuction = async (req, res) => {
             currentPrice: starting_price,
             startTime: start_time,
             endTime: end_time,
-            createdBy: userId
+            createdBy: userId,
+            pin
         });
-
         // Initialize price in Redis if connected
         if (redis.status === 'ready') {
             try {
@@ -65,10 +65,11 @@ exports.getAuctionById = async (req, res) => {
         const auction = await Auction.findById(req.params.id);
         if (!auction) return res.status(404).json({ message: 'Auction not found' });
 
-        // Match frontend field names
+        // Match frontend field names and exclude PIN for security
+        const { pin: auctionPin, ...rest } = auction._doc;
         const result = {
             id: auction._id,
-            ...auction._doc,
+            ...rest,
             current_price: auction.currentPrice
         };
 
@@ -133,5 +134,34 @@ exports.placeBid = async (req, res) => {
     } catch (error) {
         console.error('Bidding error:', error);
         res.status(500).json({ message: 'Error placing bid', error: error.message });
+    }
+};
+
+// @desc    End/Stop auction
+// @route   POST /api/auctions/:id/end
+// @access  Private (Auctioneer)
+exports.endAuction = async (req, res) => {
+    try {
+        const auction = await Auction.findById(req.params.id);
+        if (!auction) return res.status(404).json({ message: 'Auction not found' });
+
+        // Only owner can end
+        if (auction.createdBy.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        auction.status = 'ended';
+        await auction.save();
+
+        // Broadcast to all users in the room
+        const io = req.app.get('io');
+        io.to(`auction_${req.params.id}`).emit('auction_status_update', {
+            auctionId: req.params.id,
+            status: 'ended'
+        });
+
+        res.json({ message: 'Auction ended successfully', status: 'ended' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error ending auction', error: error.message });
     }
 };
