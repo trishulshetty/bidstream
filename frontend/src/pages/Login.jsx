@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { LogIn, UserPlus, Mail, Lock, User, Briefcase, AlertCircle, ArrowRight } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -20,6 +22,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
 
     try {
@@ -35,7 +38,9 @@ const Login = () => {
         setIsLogin(true);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong');
+      setError(err.response?.data?.message || 'Something went wrong. Please check your connection.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -45,109 +50,202 @@ const Login = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      fontFamily: "'Inter', sans-serif"
+      position: 'relative',
+      overflow: 'hidden',
+      padding: '20px'
     }}>
+      {/* Background Decorative Elements */}
       <div style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: '40px',
-        borderRadius: '16px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+        position: 'absolute',
+        top: '-10%',
+        right: '-5%',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%)',
+        filter: 'blur(60px)',
+        zIndex: -1
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '-10%',
+        left: '-5%',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(16, 185, 127, 0.1) 0%, rgba(16, 185, 127, 0) 70%)',
+        filter: 'blur(60px)',
+        zIndex: -1
+      }} />
+
+      <div className="glass-card animate-fade-in" style={{
         width: '100%',
-        maxWidth: '400px'
+        maxWidth: '440px',
+        padding: '48px',
+        position: 'relative'
       }}>
-        <h1 style={{ textAlign: 'center', color: '#1a202c', marginBottom: '8px' }}>BidStream</h1>
-        <p style={{ textAlign: 'center', color: '#718096', marginBottom: '24px' }}>
-          {isLogin ? 'Welcome back! Please login.' : 'Create an account to start bidding.'}
-        </p>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '64px',
+            height: '64px',
+            borderRadius: '16px',
+            background: 'var(--primary)',
+            marginBottom: '20px',
+            boxShadow: 'var(--shadow-glow)'
+          }}>
+            <LogIn size={32} color="white" />
+          </div>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: '800', letterSpacing: '-0.02em', marginBottom: '8px' }}>
+            BidStream
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>
+            {isLogin ? 'Welcome back to the auction' : 'Join the elite bidding community'}
+          </p>
+        </div>
 
         {error && (
-          <div style={{ backgroundColor: '#fff5f5', color: '#c53030', padding: '10px', borderRadius: '4px', marginBottom: '16px', fontSize: '0.9rem' }}>
+          <div style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            color: '#ef4444',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <AlertCircle size={18} />
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {!isLogin && (
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#4a5568' }}>Username</label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                required
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}
-              />
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+                Username
+              </label>
+              <div style={{ position: 'relative' }}>
+                <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <input
+                  type="text"
+                  name="username"
+                  placeholder="john_doe"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                  style={{ paddingLeft: '44px' }}
+                />
+              </div>
             </div>
           )}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#4a5568' }}>Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}
-            />
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+              Email Address
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Mail size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <input
+                type="email"
+                name="email"
+                placeholder="name@company.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                style={{ paddingLeft: '44px' }}
+              />
+            </div>
           </div>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#4a5568' }}>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}
-            />
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+              Password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <input
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                style={{ paddingLeft: '44px' }}
+              />
+            </div>
           </div>
 
           {!isLogin && (
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#4a5568' }}>I am a...</label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}
-              >
-                <option value="bidder">Bidder</option>
-                <option value="auctioneer">Auctioneer</option>
-              </select>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+                Account Type
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Briefcase size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  style={{ paddingLeft: '44px', appearance: 'none' }}
+                >
+                  <option value="bidder">Bidder</option>
+                  <option value="auctioneer">Auctioneer</option>
+                </select>
+              </div>
             </div>
           )}
 
           <button
             type="submit"
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: '#4f46e5',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '1rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
+            className="btn-primary"
+            disabled={isLoading}
+            style={{ marginTop: '10px', width: '100%', height: '52px', fontSize: '1rem' }}
           >
-            {isLogin ? 'Login' : 'Register'}
+            {isLoading ? (
+              <div style={{ width: '20px', height: '20px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            ) : (
+              <>
+                {isLogin ? 'Sign In' : 'Create Account'}
+                <ArrowRight size={18} />
+              </>
+            )}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.9rem', color: '#718096' }}>
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <span
-            onClick={() => setIsLogin(!isLogin)}
-            style={{ color: '#4f46e5', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            {isLogin ? 'Register' : 'Login'}
-          </span>
-        </p>
+        <div style={{ textAlign: 'center', marginTop: '32px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          {isLogin ? (
+            <>
+              New to BidStream?{' '}
+              <button
+                onClick={() => setIsLogin(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '700', padding: '0' }}
+              >
+                Create an account
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{' '}
+              <button
+                onClick={() => setIsLogin(true)}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '700', padding: '0' }}
+              >
+                Sign In
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

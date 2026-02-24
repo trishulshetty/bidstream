@@ -4,16 +4,25 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const redis = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
+  host: process.env.REDIS_HOST || 'localhost',
+  port: process.env.REDIS_PORT || 6379,
+  retryStrategy(times) {
+    if (times > 3) {
+      console.warn('Redis connection failed. Redis-dependent features will be unavailable.');
+      return null; // Stop retrying
+    }
+    return Math.min(times * 50, 2000);
+  }
 });
 
 redis.on('error', (err) => {
+  if (err.code !== 'ECONNREFUSED') {
     console.error('Redis Error:', err);
+  }
 });
 
 redis.on('connect', () => {
-    console.log('Connected to Redis');
+  console.log('Connected to Redis');
 });
 
 // Lua Script for Atomic Bidding
@@ -38,12 +47,12 @@ const bidScript = `
 `;
 
 const placeAtomicBid = async (auctionId, bidAmount, userId) => {
-    const result = await redis.eval(bidScript, 1, `auction:${auctionId}:price`, bidAmount, userId);
-    return result;
+  const result = await redis.eval(bidScript, 1, `auction:${auctionId}:price`, bidAmount, userId);
+  return result;
 };
 
 const setInitialPrice = async (auctionId, price) => {
-    await redis.set(`auction:${auctionId}:price`, price);
+  await redis.set(`auction:${auctionId}:price`, price);
 };
 
 module.exports = { redis, placeAtomicBid, setInitialPrice };
