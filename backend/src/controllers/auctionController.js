@@ -24,6 +24,7 @@ exports.createAuction = async (req, res) => {
         if (redis.status === 'ready') {
             try {
                 await setInitialPrice(auction._id.toString(), starting_price);
+                await redis.del('auctions:all'); // Clear cache
             } catch (redisErr) {
                 console.warn('Failed to sync with Redis:', redisErr.message);
             }
@@ -40,8 +41,16 @@ exports.createAuction = async (req, res) => {
 // @access  Public
 exports.getAuctions = async (req, res) => {
     try {
+        // Try to get from Cache first
+        const cacheKey = 'auctions:all';
+        if (redis.status === 'ready') {
+            const cachedAuctions = await redis.get(cacheKey);
+            if (cachedAuctions) {
+                return res.json(JSON.parse(cachedAuctions));
+            }
+        }
+
         const auctions = await Auction.find().sort({ createdAt: -1 });
-        // Map fields to match frontend expectations if necessary
         const modifiedAuctions = auctions.map(a => ({
             id: a._id,
             title: a.title,
@@ -51,6 +60,12 @@ exports.getAuctions = async (req, res) => {
             end_time: a.endTime,
             status: a.status
         }));
+
+        // Cache for 60 seconds
+        if (redis.status === 'ready') {
+            await redis.set(cacheKey, JSON.stringify(modifiedAuctions), 'EX', 60);
+        }
+
         res.json(modifiedAuctions);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching auctions', error: error.message });
@@ -65,12 +80,18 @@ exports.getAuctionById = async (req, res) => {
         const auction = await Auction.findById(req.params.id);
         if (!auction) return res.status(404).json({ message: 'Auction not found' });
 
-        // Match frontend field names and exclude PIN for security
+        // Get latest price from Redis for maximum speed
+        let currentPrice = auction.currentPrice;
+        if (redis.status === 'ready') {
+            const redisPrice = await redis.get(`auction:${req.params.id}:price`);
+            if (redisPrice) currentPrice = parseFloat(redisPrice);
+        }
+
         const { pin: auctionPin, ...rest } = auction._doc;
         const result = {
             id: auction._id,
             ...rest,
-            current_price: auction.currentPrice
+            current_price: currentPrice
         };
 
         res.json(result);
@@ -128,6 +149,9 @@ exports.placeBid = async (req, res) => {
             amount,
             time: new Date()
         });
+
+        // Clear listing cache for updated prices
+        if (redis.status === 'ready') await redis.del('auctions:all');
 
         return res.json({ message: 'Bid placed successfully', amount });
 

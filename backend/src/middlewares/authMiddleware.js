@@ -12,12 +12,28 @@ const authMiddleware = async (req, res, next) => {
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey');
 
-            // Get user from the token and attach to request
-            // Note: MongoDB uses _id. The token was signed with { id: user._id }
-            req.user = await User.findById(decoded.id);
+            // 1. Try to get user from Redis cache
+            const { redis } = require('../utils/redis');
+            const cacheKey = `user:${decoded.id}`;
+            let cachedUser = null;
+            
+            if (redis.status === 'ready') {
+                const data = await redis.get(cacheKey);
+                if (data) cachedUser = JSON.parse(data);
+            }
 
-            if (!req.user) {
-                return res.status(401).json({ message: 'User no longer exists' });
+            if (cachedUser) {
+                req.user = cachedUser;
+            } else {
+                // 2. Fallback to MongoDB
+                req.user = await User.findById(decoded.id);
+                if (!req.user) {
+                    return res.status(401).json({ message: 'User no longer exists' });
+                }
+                // 3. Cache the user for 10 minutes
+                if (redis.status === 'ready') {
+                    await redis.set(cacheKey, JSON.stringify(req.user), 'EX', 600);
+                }
             }
 
             next();

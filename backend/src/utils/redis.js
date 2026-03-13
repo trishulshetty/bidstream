@@ -3,27 +3,32 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
+const redisConfig = {
+  host: process.env.REDIS_HOST || '127.0.0.1',
   port: process.env.REDIS_PORT || 6379,
+  password: process.env.REDIS_PASSWORD || undefined,
   retryStrategy(times) {
-    if (times > 3) {
-      console.warn('Redis connection failed. Redis-dependent features will be unavailable.');
-      return null; // Stop retrying
+    if (times > 5) {
+        // Stop logging every retry to keep console clean
+        return null; 
     }
-    return Math.min(times * 50, 2000);
-  }
-});
+    return Math.min(times * 200, 2000);
+  },
+  maxRetriesPerRequest: null, // Critical for socket.io adapter
+};
 
-redis.on('error', (err) => {
-  if (err.code !== 'ECONNREFUSED') {
-    console.error('Redis Error:', err);
-  }
-});
+// Main client for general use
+const redis = new Redis(redisConfig);
 
-redis.on('connect', () => {
-  console.log('Connected to Redis');
-});
+// Clients for Socket.io adapter (need separate instances)
+const pubClient = new Redis(redisConfig);
+const subClient = new Redis(redisConfig);
+
+redis.on('error', (err) => console.error('Redis Error:', err.message));
+pubClient.on('error', (err) => console.error('Redis Pub Error:', err.message));
+subClient.on('error', (err) => console.error('Redis Sub Error:', err.message));
+
+redis.on('connect', () => console.log('✅ Main Redis Connected'));
 
 // Lua Script for Atomic Bidding
 // KEYS[1]: auction_current_price_key (e.g., "auction:123:price")
@@ -33,6 +38,7 @@ redis.on('connect', () => {
 const bidScript = `
   local current_price = redis.call('GET', KEYS[1])
   if not current_price then
+    -- If not in redis, we might need to seed it, but for now return -1
     return -1
   end
   
@@ -47,12 +53,26 @@ const bidScript = `
 `;
 
 const placeAtomicBid = async (auctionId, bidAmount, userId) => {
-  const result = await redis.eval(bidScript, 1, `auction:${auctionId}:price`, bidAmount, userId);
-  return result;
+  try {
+    const result = await redis.eval(bidScript, 1, `auction:${auctionId}:price`, bidAmount, userId);
+    return result;
+  } catch (err) {
+    console.error('Redis Eval Error:', err);
+    return -2; // Redis execution error
+  }
 };
 
 const setInitialPrice = async (auctionId, price) => {
   await redis.set(`auction:${auctionId}:price`, price);
+  // Set TTL to 24 hours to keep memory clean (optional for project)
+  await redis.expire(`auction:${auctionId}:price`, 86400); 
 };
 
-module.exports = { redis, placeAtomicBid, setInitialPrice };
+module.exports = { 
+  redis, 
+  pubClient, 
+  subClient, 
+  placeAtomicBid, 
+  setInitialPrice 
+};
+

@@ -22,6 +22,12 @@ const io = new Server(server, {
     }
 });
 
+// Setup Redis Adapter for Socket.io
+const { createAdapter } = require('@socket.io/redis-adapter');
+const { pubClient, subClient } = require('./src/utils/redis');
+io.adapter(createAdapter(pubClient, subClient));
+console.log('🚀 Socket.io Redis Adapter initialized');
+
 const PORT = process.env.PORT || 5001;
 
 // Socket.io Connection Logic
