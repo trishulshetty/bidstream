@@ -242,15 +242,22 @@ const AuctionRoom = () => {
           <button onClick={() => navigate('/lobby')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
             <ArrowLeft size={20} />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <Logo size="sm" />
-            <span style={{ fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-main)', fontSize: '0.9rem' }}>Room {id}</span>
+            <span style={{ 
+              fontSize: '1.2rem', 
+              fontWeight: '800', 
+              letterSpacing: '0.05em',
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              color: 'var(--text-main)',
+              textTransform: 'uppercase'
+            }}>BidStream</span>
           </div>
         </div>
 
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--text-main)' }}>{auction.title}</h2>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '700' }}>PIN: {verifiedPin}</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Access Pin</div>
+          <div style={{ fontSize: '1.1rem', color: 'var(--text-main)', fontWeight: '900', letterSpacing: '0.2em' }}>{verifiedPin}</div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
