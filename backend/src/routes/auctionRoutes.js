@@ -5,7 +5,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 router.get('/', auctionController.getAuctions);
 router.get('/owned', authMiddleware, auctionController.getMyAuctions);
-router.get('/:id', auctionController.getAuctionById);
+router.get('/:id', authMiddleware, auctionController.getAuctionById);
 
 // Protected routes
 router.post('/', authMiddleware, auctionController.createAuction);

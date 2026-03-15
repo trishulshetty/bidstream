@@ -10,7 +10,8 @@ import {
   ShieldAlert,
   Zap,
   TrendingUp,
-  Award
+  Award,
+  Share2
 } from 'lucide-react';
 
 const Logo = ({ size = 'md' }) => {
@@ -51,32 +52,28 @@ const AuctionRoom = () => {
   const [bidAmount, setBidAmount] = useState('');
   const [bidHistory, setBidHistory] = useState([]);
   const [socket, setSocket] = useState(null);
-  const role = localStorage.getItem('userRole');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const token = localStorage.getItem('token');
-
+  const [isVerifying, setIsVerifying] = useState(true);
   const [timeLeft, setTimeLeft] = useState('');
+  
+  const role = localStorage.getItem('userRole');
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchAuction = async () => {
       try {
-        const res = await axios.get(`http://localhost:5001/api/auctions/${id}`);
+        const res = await axios.get(`http://localhost:5001/api/auctions/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setAuction(res.data);
       } catch (err) {
         console.error('Error fetching auction:', err);
+        setIsVerifying(false);
       }
     };
     fetchAuction();
 
     const newSocket = io('http://localhost:5001');
     setSocket(newSocket);
-
-    // Auto-join if PIN is provided in URL query (?pin=xxxxxx)
-    const searchParams = new URLSearchParams(location.search);
-    const urlPin = searchParams.get('pin');
-    if (urlPin && urlPin.length === 6) {
-      newSocket.emit('join_auction', { auctionId: id, pin: urlPin });
-    }
 
     newSocket.on('new_bid', (data) => {
       setBidHistory((prev) => [data, ...prev]);
@@ -87,14 +84,17 @@ const AuctionRoom = () => {
       setIsJoined(true);
       setVerifiedPin(data.pin);
       setPinError('');
+      setIsVerifying(false);
     });
 
     newSocket.on('join_failed', (data) => {
       setPinError(data.message);
+      setIsVerifying(false);
     });
 
     newSocket.on('error', (data) => {
       alert(data.message);
+      setIsVerifying(false);
     });
 
     newSocket.on('auction_status_update', (data) => {
@@ -107,7 +107,25 @@ const AuctionRoom = () => {
     });
 
     return () => newSocket.close();
-  }, [id]);
+  }, [id, token]);
+
+  // Handle auto-join logic
+  useEffect(() => {
+    if (!socket || isJoined || !auction) return;
+
+    const searchParams = new URLSearchParams(location.search);
+    const urlPin = searchParams.get('pin');
+    
+    if (auction.pin) {
+      // Owner bypass
+      socket.emit('join_auction', { auctionId: id, pin: auction.pin });
+    } else if (urlPin && urlPin.length === 6) {
+      // Direct link bypass
+      socket.emit('join_auction', { auctionId: id, pin: urlPin });
+    } else {
+      setIsVerifying(false);
+    }
+  }, [auction, socket, isJoined, id, location.search]);
 
   useEffect(() => {
     if (!auction || auction.status === 'ended') {
@@ -142,6 +160,7 @@ const AuctionRoom = () => {
 
   const handleJoin = () => {
     if (pin.length !== 6) return setPinError('PIN must be 6 digits');
+    setIsVerifying(true);
     socket.emit('join_auction', { auctionId: id, pin });
   };
 
@@ -173,9 +192,10 @@ const AuctionRoom = () => {
     }
   };
 
-  if (!auction) return (
+  if (!auction || isVerifying) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: '20px', background: 'var(--bg-deep)' }}>
       <div style={{ width: '40px', height: '40px', border: '2px solid var(--text-dim)', borderTopColor: 'var(--text-main)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      {auction && <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Authenticating Session...</p>}
     </div>
   );
 
@@ -233,8 +253,34 @@ const AuctionRoom = () => {
           <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '700' }}>PIN: {verifiedPin}</div>
         </div>
 
-        <div className={`badge ${auction.status === 'ended' ? 'badge-muted' : 'badge-success'}`}>
-          {auction.status === 'ended' ? 'Ended' : 'Live'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className={`badge ${auction.status === 'ended' ? 'badge-muted' : 'badge-success'}`}>
+            {auction.status === 'ended' ? 'Ended' : 'Live'}
+          </div>
+          {role === 'auctioneer' && (
+            <button 
+              onClick={() => {
+                const url = `${window.location.origin}/room/${id}?pin=${verifiedPin}`;
+                navigator.clipboard.writeText(url);
+                alert('Invite link copied to clipboard!');
+              }}
+              style={{
+                background: 'var(--bg-dark)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-main)',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.75rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Share2 size={16} />
+              Share Link
+            </button>
+          )}
         </div>
       </nav>
 

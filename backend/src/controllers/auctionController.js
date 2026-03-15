@@ -114,7 +114,7 @@ exports.getAuctions = async (req, res) => {
 
 // @desc    Get single auction
 // @route   GET /api/auctions/:id
-// @access  Public
+// @access  Public (but private for owner to get PIN)
 exports.getAuctionById = async (req, res) => {
     try {
         const auction = await Auction.findById(req.params.id);
@@ -127,11 +127,18 @@ exports.getAuctionById = async (req, res) => {
             if (redisPrice) currentPrice = parseFloat(redisPrice);
         }
 
+        const requesterId = req.user.id || req.user._id?.toString();
+        const isOwner = auction.createdBy.toString() === requesterId;
+        
         const { pin: auctionPin, ...rest } = auction._doc;
+        
         const result = {
             id: auction._id,
             ...rest,
-            current_price: currentPrice
+            current_price: currentPrice,
+            // Only reveal PIN to the owner so they can bypass the entry screen
+            pin: isOwner ? auction.pin : undefined,
+            isOwner
         };
 
         res.json(result);
