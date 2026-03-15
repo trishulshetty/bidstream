@@ -4,16 +4,40 @@ import io from 'socket.io-client';
 import axios from 'axios';
 import {
   ArrowLeft,
-  Gavel,
   History,
   DollarSign,
   Clock,
   ShieldAlert,
-  Send,
   Zap,
   TrendingUp,
   Award
 } from 'lucide-react';
+
+const Logo = ({ size = 'md' }) => {
+  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } : 
+                     size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' }  :
+                     { container: '36px', inner: '14px', radius: '10px' };
+  
+  return (
+    <div style={{
+      width: dimensions.container,
+      height: dimensions.container,
+      borderRadius: dimensions.radius,
+      background: 'var(--text-main)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    }}>
+      <div style={{ 
+        width: dimensions.inner, 
+        height: dimensions.inner, 
+        background: 'var(--bg-deep)',
+        borderRadius: '2px'
+      }} />
+    </div>
+  );
+};
 
 const AuctionRoom = () => {
   const { id } = useParams();
@@ -79,19 +103,18 @@ const AuctionRoom = () => {
 
   useEffect(() => {
     if (!auction || auction.status === 'ended') {
-      if (auction?.status === 'ended') setTimeLeft('AUCTION ENDED');
+      if (auction?.status === 'ended') setTimeLeft('ENDED');
       return;
     }
 
-    const timer = setInterval(() => {
+    const calculateTime = () => {
       const now = new Date().getTime();
       const end = new Date(auction.end_time).getTime();
       const distance = end - now;
 
       if (distance < 0) {
-        setTimeLeft('AUCTION ENDED');
-        clearInterval(timer);
-        return;
+        setTimeLeft('ENDED');
+        return true;
       }
 
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -101,8 +124,11 @@ const AuctionRoom = () => {
       setTimeLeft(
         `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
       );
-    }, 1000);
+      return false;
+    };
 
+    if (calculateTime()) return;
+    const timer = setInterval(() => { if (calculateTime()) clearInterval(timer); }, 1000);
     return () => clearInterval(timer);
   }, [auction]);
 
@@ -112,7 +138,7 @@ const AuctionRoom = () => {
   };
 
   const stopBidding = async () => {
-    if (!window.confirm('Are you sure you want to end this auction? This action cannot be undone.')) return;
+    if (!window.confirm('End this auction?')) return;
     try {
       await axios.post(`http://localhost:5001/api/auctions/${id}/end`, {}, {
         headers: { Authorization: `Bearer ${token}` }
@@ -125,9 +151,7 @@ const AuctionRoom = () => {
   const placeBid = async () => {
     if (auction.status === 'ended') return alert('Auction has ended');
     if (!bidAmount || isNaN(bidAmount)) return alert('Invalid amount');
-    if (parseFloat(bidAmount) <= auction.current_price) {
-      return alert('Bid must be higher than current price');
-    }
+    if (parseFloat(bidAmount) <= auction.current_price) return alert('Bid higher');
 
     try {
       await axios.post(
@@ -142,39 +166,33 @@ const AuctionRoom = () => {
   };
 
   if (!auction) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: '20px' }}>
-      <div style={{ width: '40px', height: '40px', border: '3px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-      <span style={{ color: 'var(--text-muted)' }}>Entering secure bidding room...</span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: '20px', background: 'var(--bg-deep)' }}>
+      <div style={{ width: '40px', height: '40px', border: '2px solid var(--text-dim)', borderTopColor: 'var(--text-main)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
     </div>
   );
 
   if (!isJoined) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-dark)' }}>
-      <div className="glass-card" style={{ maxWidth: '400px', width: '90%', padding: '40px', textAlign: 'center' }}>
-        <div style={{
-          width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(56, 189, 248, 0.1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: 'var(--primary)'
-        }}>
-          <ShieldAlert size={32} />
-        </div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '12px' }}>Locked Auction</h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>This auction requires a 6-digit access PIN provided by the auctioneer.</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-deep)' }}>
+      <div className="glass-card" style={{ maxWidth: '400px', width: '90%', padding: '48px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+        <Logo size="lg" />
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: '24px 0 8px', color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Access Restricted</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '0.9rem' }}>Enter the valid 6-digit PIN to authenticate and join the bidding floor.</p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <input
             type="text"
             maxLength="6"
-            placeholder="Enter 6-digit PIN"
+            placeholder="000000"
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5em', height: '64px' }}
+            style={{ textAlign: 'center', fontSize: '1.75rem', letterSpacing: '0.4em', height: '64px', background: 'var(--bg-dark)' }}
           />
-          {pinError && <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>{pinError}</p>}
+          {pinError && <p style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>{pinError}</p>}
           <button onClick={handleJoin} className="btn-primary" style={{ height: '56px' }}>
-            Verify & Enter Room
+            Verify Credentials
           </button>
-          <button onClick={() => navigate('/lobby')} className="btn-secondary">
-            Back to Lobby
+          <button onClick={() => navigate('/lobby')} className="btn-secondary" style={{ border: 'none', color: 'var(--text-dim)' }}>
+            Return to Lobby
           </button>
         </div>
       </div>
@@ -182,90 +200,63 @@ const AuctionRoom = () => {
   );
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-deep)' }}>
       <nav style={{
-        padding: '1.25rem 2rem',
-        borderBottom: '1px solid var(--glass-border)',
-        background: 'rgba(15, 23, 42, 0.8)',
-        backdropFilter: 'blur(10px)',
+        padding: '1rem 2rem',
+        borderBottom: '1px solid var(--border-color)',
+        background: 'rgba(2, 6, 23, 0.8)',
+        backdropFilter: 'blur(12px)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <button
-          onClick={() => navigate('/lobby')}
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          <ArrowLeft size={20} />
-          <span>Exit to Lobby</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <button onClick={() => navigate('/lobby')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+            <ArrowLeft size={20} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Logo size="sm" />
+            <span style={{ fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-main)', fontSize: '0.9rem' }}>Room {id}</span>
+          </div>
+        </div>
 
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>{auction.title}</h2>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
-            <span>Room ID: {id}</span>
-            <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>PIN: {verifiedPin}</span>
-          </div>
+          <h2 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--text-main)' }}>{auction.title}</h2>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '700' }}>PIN: {verifiedPin}</div>
         </div>
 
         <div className={`badge ${auction.status === 'ended' ? 'badge-muted' : 'badge-success'}`}>
-          {auction.status === 'ended' ? 'Auction Ended' : 'Live Auction'}
+          {auction.status === 'ended' ? 'Ended' : 'Live'}
         </div>
       </nav>
 
-      <main style={{ flex: 1, padding: '2rem', maxWidth: '1200px', margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2rem' }}>
-
-        {/* Left Column: Main Action */}
+      <main style={{ flex: 1, padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
+        
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
-          {/* Price Tracking Card */}
-          <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '200px', height: '200px', background: 'var(--primary-light)', borderRadius: '50%', filter: 'blur(40px)', zIndex: 0 }} />
-
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.1em' }}>Current Valuation</span>
-              <div style={{ fontSize: '5rem', fontWeight: '900', color: 'var(--secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '1rem 0' }}>
-                <DollarSign size={48} strokeWidth={3} />
-                {auction.current_price}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--text-muted)' }}>
-                <TrendingUp size={18} />
-                <span>Min. Increment: $10.00</span>
-              </div>
+          <div className="glass-card" style={{ padding: '4rem 3rem', textAlign: 'center', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.15em' }}>Current Valuation</span>
+            <div style={{ fontSize: '6rem', fontWeight: '900', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '1rem 0', fontFamily: "'Bricolage Grotesque', sans-serif" }}>
+              <span style={{ fontSize: '2rem', color: 'var(--text-muted)', marginRight: '8px' }}>$</span>
+              {auction.current_price}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', color: 'var(--text-dim)', fontSize: '0.875rem' }}>
+              <TrendingUp size={16} />
+              <span>Standard Increment Applied</span>
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="glass-card" style={{ padding: '2rem' }}>
+          <div className="glass-card" style={{ padding: '2.5rem', border: '1px solid var(--border-color)' }}>
             {auction.status === 'ended' ? (
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <h3 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-muted)' }}>This auction has concluded.</h3>
-                <p>No further bids are accepted.</p>
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', textTransform: 'uppercase' }}>Auction Closed</h3>
               </div>
             ) : role === 'auctioneer' ? (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                  <ShieldAlert className="text-accent" />
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700' }}>Auctioneer Console</h3>
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button
-                    onClick={stopBidding}
-                    className="btn-primary"
-                    style={{ flex: 1, background: '#ef4444' }}
-                  >
-                    Stop Bidding
-                  </button>
-                  <button className="btn-secondary" style={{ flex: 1 }}>Extend Time</button>
-                </div>
+                <h3 style={{ fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '20px', color: 'var(--text-muted)' }}>Console</h3>
+                <button onClick={stopBidding} className="btn-primary" style={{ width: '100%', height: '56px' }}>Terminate Bidding Session</button>
               </div>
             ) : (
               <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Zap size={20} className="text-accent" />
-                  Fast Bid
-                </h3>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <DollarSign size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
@@ -273,33 +264,16 @@ const AuctionRoom = () => {
                       type="number"
                       value={bidAmount}
                       onChange={(e) => setBidAmount(e.target.value)}
-                      placeholder={`Enter > $${auction.current_price}`}
-                      style={{ paddingLeft: '44px', height: '56px', fontSize: '1.1rem' }}
+                      placeholder={`Min > $${auction.current_price}`}
+                      style={{ paddingLeft: '44px', height: '60px', fontSize: '1.25rem', fontWeight: '700', background: 'var(--bg-dark)' }}
                     />
                   </div>
-                  <button
-                    onClick={placeBid}
-                    className="btn-primary"
-                    style={{ height: '56px', paddingInline: '2rem' }}
-                  >
-                    Place Atomic Bid
-                  </button>
+                  <button onClick={placeBid} className="btn-primary" style={{ height: '60px', paddingInline: '2.5rem' }}>Place Bid</button>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                   {[10, 50, 100].map(inc => (
-                    <button
-                      key={inc}
-                      onClick={() => setBidAmount(auction.current_price + inc)}
-                      style={{
-                        flex: 1,
-                        padding: '10px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--glass-border)',
-                        background: 'rgba(255,255,255,0.05)',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.875rem'
-                      }}
-                    >
+                    <button key={inc} onClick={() => setBidAmount(auction.current_price + inc)} 
+                      style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: '700' }}>
                       +${inc}
                     </button>
                   ))}
@@ -309,50 +283,30 @@ const AuctionRoom = () => {
           </div>
         </div>
 
-        {/* Right Column: Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
-          {/* History */}
-          <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <History size={18} className="text-primary" />
-              <h4 style={{ fontWeight: '700' }}>Live Stream</h4>
+          <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <History size={18} style={{ color: 'var(--text-muted)' }} />
+              <h4 style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Bid History</h4>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
               {bidHistory.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-dim)' }}>
-                  <div style={{ marginBottom: '12px' }}><Clock size={32} style={{ opacity: 0.3 }} /></div>
-                  <p>No bids yet. Be the first!</p>
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-dim)' }}>
+                  <p style={{ fontSize: '0.8rem' }}>Awaiting initial bid...</p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {bidHistory.map((bid, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        padding: '12px 16px',
-                        borderRadius: '16px',
-                        background: index === 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)',
-                        border: index === 0 ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid transparent',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        animation: 'fadeIn 0.3s ease-out'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: '0.875rem', fontWeight: '600' }}>
-                          {index === 0 && <Award size={14} style={{ display: 'inline', marginRight: '6px', color: '#10b981' }} />}
+                    <div key={index} style={{ padding: '16px', borderRadius: '12px', background: index === 0 ? 'rgba(255,255,255,0.03)' : 'transparent', border: index === 0 ? '1px solid var(--border-color)' : '1px solid transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.85rem' }}>
+                        <div style={{ fontWeight: '700', color: index === 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                          {index === 0 && <Award size={14} style={{ display: 'inline', marginRight: '6px' }} />}
                           User {bid.userId}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                          {new Date(bid.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '2px' }}>Recent activity</div>
                       </div>
-                      <div style={{ fontWeight: '800', color: index === 0 ? '#10b981' : 'var(--text-main)' }}>
-                        ${bid.amount}
-                      </div>
+                      <div style={{ fontWeight: '900', color: 'var(--text-main)', fontSize: '1rem' }}>${bid.amount}</div>
                     </div>
                   ))}
                 </div>
@@ -360,26 +314,20 @@ const AuctionRoom = () => {
             </div>
           </div>
 
-          {/* Time Remaining */}
-          <div className="glass-card" style={{ padding: '20px', background: 'rgba(245, 158, 11, 0.05)', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#f59e0b', marginBottom: '12px' }}>
+          <div className="glass-card" style={{ padding: '24px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', marginBottom: '12px' }}>
               <Clock size={18} />
-              <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Time Remaining</span>
+              <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.1em' }}>Time Remaining</span>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: '900', fontFamily: 'monospace' }}>
-              {timeLeft}
-            </div>
+            <div style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--text-main)', fontFamily: 'monospace' }}>{timeLeft}</div>
           </div>
         </div>
-
       </main>
 
       <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .text-accent { color: var(--accent); }
-        .text-primary { color: var(--primary); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .badge-success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .badge-muted { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
       `}</style>
     </div>
   );

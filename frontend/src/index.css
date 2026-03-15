@@ -1,32 +1,34 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap');
 
 :root {
-  /* Colors */
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-light: rgba(99, 102, 241, 0.1);
-  --secondary: #10b981;
-  --accent: #f59e0b;
+  /* Sophisticated Dark Palette */
+  --primary: #cbd5e1; /* Muted Slate White */
+  --primary-hover: #f8fafc;
+  --primary-light: rgba(203, 213, 225, 0.08);
+  --secondary: #64748b;
+  --accent: #94a3b8;
   
-  --bg-deep: #0f172a;
-  --bg-dark: #1e293b;
-  --bg-card: rgba(30, 41, 59, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
+  --bg-deep: #020617; /* Deepest Navy/Black */
+  --bg-dark: #0a0f1e;
+  --bg-card: #111827;
+  --border-color: #1f2937;
   
-  --text-main: #f8fafc;
+  --text-main: #f1f5f9;
   --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-dim: #475569;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 24px 10px -1px rgb(0 0 0 / 0.06);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+  /* Shadows - ultra subtle */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 15px rgba(203, 213, 225, 0.05);
 
-  /* Glassmorphism */
-  --glass-bg: rgba(30, 41, 59, 0.4);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  /* UI Elements */
+  --glass-bg: rgba(17, 24, 39, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
   --glass-blur: blur(12px);
+  --radius-sm: 4px;
+  --radius-md: 8px;
 }
 
 * {
@@ -36,19 +38,24 @@
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-deep);
   color: var(--text-main);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
+h1, h2, h3, h4, h5, h6, .badge, label, .small-font, span[style*="text-transform: uppercase"], .font-heading {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  letter-spacing: -0.03em;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -56,8 +63,8 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-dark);
-  border-radius: 10px;
+  background: var(--border-color);
+  border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -66,62 +73,48 @@ body {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideIn {
-  from { transform: translateX(-20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
 .animate-fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
+  animation: fadeIn 0.4s ease-out forwards;
 }
 
+/* Base Components */
 .glass-card {
   background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-lg);
-  border-radius: 24px;
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-md);
 }
 
 input, select, textarea {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid var(--glass-border);
-  color: white;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   width: 100%;
   transition: all 0.2s ease;
-  font-family: inherit;
+  font-family: 'Inter', sans-serif;
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-light);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 button {
   cursor: pointer;
-  font-family: inherit;
-  font-weight: 600;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.875rem;
   transition: all 0.2s ease;
+  border-radius: var(--radius-sm);
 }
 
 button:disabled {
@@ -131,10 +124,9 @@ button:disabled {
 
 .btn-primary {
   background: var(--primary);
-  color: white;
-  border: none;
+  color: var(--bg-deep);
+  border: 1px solid var(--primary);
   padding: 0.75rem 1.5rem;
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,36 +135,26 @@ button:disabled {
 
 .btn-primary:hover {
   background: var(--primary-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
+  border-color: var(--primary-hover);
 }
 
 .btn-secondary {
-  background: var(--bg-dark);
+  background: transparent;
   color: var(--text-main);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--border-color);
   padding: 0.75rem 1.5rem;
-  border-radius: 12px;
 }
 
 .btn-secondary:hover {
-  background: var(--glass-border);
+  background: var(--border-color);
+  color: var(--primary);
 }
 
 .badge {
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-}
-
-.badge-success {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.badge-warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  border: 1px solid transparent;
 }

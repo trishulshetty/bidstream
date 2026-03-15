@@ -1,7 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { LogIn, UserPlus, Mail, Lock, User, Briefcase, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, Briefcase, AlertCircle, ArrowRight } from 'lucide-react';
+
+const Logo = ({ size = 'md' }) => {
+  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } : 
+                     size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' }  :
+                     { container: '36px', inner: '14px', radius: '10px' };
+  
+  return (
+    <div style={{
+      width: dimensions.container,
+      height: dimensions.container,
+      borderRadius: dimensions.radius,
+      background: 'var(--text-main)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+      margin: '0 auto'
+    }}>
+      <div style={{ 
+        width: dimensions.inner, 
+        height: dimensions.inner, 
+        background: 'var(--bg-deep)',
+        borderRadius: '2px'
+      }} />
+    </div>
+  );
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,18 +54,17 @@ const Login = () => {
 
     try {
       const res = await axios.post(`http://localhost:5001${endpoint}`, formData);
-
       if (isLogin) {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('userRole', res.data.user.role);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         navigate('/lobby');
       } else {
-        alert('Registration successful! Please login.');
+        alert('Account created. Please login.');
         setIsLogin(true);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Please check your connection.');
+      setError(err.response?.data?.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -50,74 +76,49 @@ const Login = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      position: 'relative',
-      overflow: 'hidden',
+      background: 'var(--bg-deep)',
       padding: '20px'
     }}>
-      {/* Background Decorative Elements */}
-      <div style={{
-        position: 'absolute',
-        top: '-10%',
-        right: '-5%',
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%)',
-        filter: 'blur(60px)',
-        zIndex: -1
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '-10%',
-        left: '-5%',
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(16, 185, 127, 0.1) 0%, rgba(16, 185, 127, 0) 70%)',
-        filter: 'blur(60px)',
-        zIndex: -1
-      }} />
-
       <div className="glass-card animate-fade-in" style={{
         width: '100%',
         maxWidth: '440px',
-        padding: '48px',
-        position: 'relative'
+        padding: '56px 48px',
+        border: '1px solid var(--border-color)',
+        background: 'var(--bg-card)'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '64px',
-            height: '64px',
-            borderRadius: '16px',
-            background: 'var(--primary)',
-            marginBottom: '20px',
-            boxShadow: 'var(--shadow-glow)'
+          <Logo size="lg" />
+          <h1 style={{ 
+            fontSize: '2rem', 
+            fontWeight: '800', 
+            letterSpacing: '0.05em', 
+            margin: '24px 0 8px',
+            color: 'var(--text-main)',
+            fontFamily: "'Bricolage Grotesque', sans-serif",
+            textTransform: 'uppercase'
           }}>
-            <LogIn size={32} color="white" />
-          </div>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: '800', letterSpacing: '-0.02em', marginBottom: '8px' }}>
             BidStream
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>
-            {isLogin ? 'Welcome back to the auction' : 'Join the elite bidding community'}
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '500' }}>
+            {isLogin ? 'Secure platform access' : 'Create professional profile'}
           </p>
         </div>
 
         {error && (
           <div style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            backgroundColor: 'rgba(239, 68, 68, 0.05)',
             border: '1px solid rgba(239, 68, 68, 0.2)',
             color: '#ef4444',
-            padding: '12px 16px',
-            borderRadius: '12px',
+            padding: '14px',
+            borderRadius: '8px',
             marginBottom: '24px',
-            fontSize: '0.875rem',
+            fontSize: '0.8rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            gap: '10px',
+            fontWeight: '600'
           }}>
-            <AlertCircle size={18} />
+            <AlertCircle size={16} />
             {error}
           </div>
         )}
@@ -125,48 +126,42 @@ const Login = () => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {!isLogin && (
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
-                Username
-              </label>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Username</label>
               <div style={{ position: 'relative' }}>
-                <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <User size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                 <input
                   type="text"
                   name="username"
-                  placeholder="john_doe"
+                  placeholder="ID_REFERENCE"
                   value={formData.username}
                   onChange={handleChange}
                   required
-                  style={{ paddingLeft: '44px' }}
+                  style={{ paddingLeft: '44px', background: 'var(--bg-dark)' }}
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
-              Email Address
-            </label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
                 type="email"
                 name="email"
-                placeholder="name@company.com"
+                placeholder="system@access.net"
                 value={formData.email}
                 onChange={handleChange}
                 required
-                style={{ paddingLeft: '44px' }}
+                style={{ paddingLeft: '44px', background: 'var(--bg-dark)' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
-              Password
-            </label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Password</label>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
                 type="password"
                 name="password"
@@ -174,23 +169,21 @@ const Login = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                style={{ paddingLeft: '44px' }}
+                style={{ paddingLeft: '44px', background: 'var(--bg-dark)' }}
               />
             </div>
           </div>
 
           {!isLogin && (
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
-                Account Type
-              </label>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role</label>
               <div style={{ position: 'relative' }}>
-                <Briefcase size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <Briefcase size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  style={{ paddingLeft: '44px', appearance: 'none' }}
+                  style={{ paddingLeft: '44px', background: 'var(--bg-dark)' }}
                 >
                   <option value="bidder">Bidder</option>
                   <option value="auctioneer">Auctioneer</option>
@@ -203,48 +196,36 @@ const Login = () => {
             type="submit"
             className="btn-primary"
             disabled={isLoading}
-            style={{ marginTop: '10px', width: '100%', height: '52px', fontSize: '1rem' }}
+            style={{ marginTop: '10px', width: '100%', height: '56px', fontSize: '0.9rem' }}
           >
             {isLoading ? (
-              <div style={{ width: '20px', height: '20px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: '20px', height: '20px', border: '2px solid var(--bg-deep)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             ) : (
               <>
-                {isLogin ? 'Sign In' : 'Create Account'}
+                {isLogin ? 'Authenticate' : 'Register Profile'}
                 <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '32px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+        <div style={{ textAlign: 'center', marginTop: '32px', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: '600' }}>
           {isLogin ? (
             <>
-              New to BidStream?{' '}
-              <button
-                onClick={() => setIsLogin(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '700', padding: '0' }}
-              >
-                Create an account
-              </button>
+              Unauthorized?{' '}
+              <button onClick={() => setIsLogin(false)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontWeight: '800', cursor: 'pointer', padding: '0' }}>Register</button>
             </>
           ) : (
             <>
-              Already have an account?{' '}
-              <button
-                onClick={() => setIsLogin(true)}
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '700', padding: '0' }}
-              >
-                Sign In
-              </button>
+              Existing Profile?{' '}
+              <button onClick={() => setIsLogin(true)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontWeight: '800', cursor: 'pointer', padding: '0' }}>Sign In</button>
             </>
           )}
         </div>
       </div>
 
       <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

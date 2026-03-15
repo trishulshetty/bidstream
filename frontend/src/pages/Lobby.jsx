@@ -4,18 +4,38 @@ import axios from 'axios';
 import {
   Plus,
   LogOut,
-  Gavel,
   Clock,
   Users,
-  TrendingUp,
   Search,
-  Filter,
-  Calendar,
   DollarSign,
-  ChevronRight,
-  LayoutGrid,
-  List as ListIcon
+  ChevronRight
 } from 'lucide-react';
+
+const Logo = ({ size = 'md' }) => {
+  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } : 
+                     size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' }  :
+                     { container: '36px', inner: '14px', radius: '10px' };
+  
+  return (
+    <div style={{
+      width: dimensions.container,
+      height: dimensions.container,
+      borderRadius: dimensions.radius,
+      background: 'var(--text-main)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    }}>
+      <div style={{ 
+        width: dimensions.inner, 
+        height: dimensions.inner, 
+        background: 'var(--bg-deep)',
+        borderRadius: '2px'
+      }} />
+    </div>
+  );
+};
 
 const Lobby = () => {
   const [auctions, setAuctions] = useState([]);
@@ -37,7 +57,7 @@ const Lobby = () => {
 
   useEffect(() => {
     fetchAuctions();
-    const interval = setInterval(fetchAuctions, 10000); // Auto refresh every 10s
+    const interval = setInterval(fetchAuctions, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -60,10 +80,8 @@ const Lobby = () => {
         { ...newAuction, starting_price: parseFloat(newAuction.starting_price) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       const createdAuction = res.data;
-      alert(`Auction created successfully!\n\nAccess PIN: ${createdAuction.pin}\n\nShare this PIN with bidders so they can join the room.`);
-
+      alert(`Auction created successfully!\n\nAccess PIN: ${createdAuction.pin}`);
       setShowCreate(false);
       fetchAuctions();
       setNewAuction({ title: '', description: '', starting_price: '', start_time: '', end_time: '' });
@@ -81,7 +99,6 @@ const Lobby = () => {
     const now = new Date();
     const startDate = new Date(start);
     const endDate = new Date(end);
-
     if (now < startDate) return { label: 'Upcoming', class: 'badge-warning' };
     if (now > endDate) return { label: 'Ended', class: 'badge-muted' };
     return { label: 'Live Now', class: 'badge-success' };
@@ -89,12 +106,11 @@ const Lobby = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Navigation Bar */}
       <nav style={{
         padding: '1.25rem 2rem',
-        borderBottom: '1px solid var(--glass-border)',
-        background: 'rgba(15, 23, 42, 0.8)',
-        backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid var(--border-color)',
+        background: 'rgba(2, 6, 23, 0.8)',
+        backdropFilter: 'blur(12px)',
         position: 'sticky',
         top: 0,
         zIndex: 100,
@@ -102,26 +118,22 @@ const Lobby = () => {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'var(--primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'var(--shadow-glow)'
-          }}>
-            <Gavel size={24} color="white" />
-          </div>
-          <span style={{ fontSize: '1.5rem', fontWeight: '800', letterSpacing: '-0.03em' }}>BidStream</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <Logo />
+          <span style={{ 
+            fontSize: '1.4rem', 
+            fontWeight: '800', 
+            letterSpacing: '0.05em',
+            fontFamily: "'Bricolage Grotesque', sans-serif",
+            color: 'var(--text-main)',
+            textTransform: 'uppercase'
+          }}>BidStream</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingRight: '24px', borderRight: '1px solid var(--glass-border)' }}>
-            <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: '700' }}>{user.username || 'User'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingRight: '24px', borderRight: '1px solid var(--border-color)' }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-main)' }}>{user.username || 'User'}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{role}</div>
             </div>
             <div style={{
@@ -129,12 +141,12 @@ const Lobby = () => {
               height: '40px',
               borderRadius: '50%',
               background: 'var(--bg-dark)',
-              border: '2px solid var(--primary)',
+              border: '1px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 'bold',
-              color: 'var(--primary)'
+              color: 'var(--text-main)'
             }}>
               {(user.username || 'U').charAt(0).toUpperCase()}
             </div>
@@ -143,22 +155,19 @@ const Lobby = () => {
           <button
             onClick={() => { localStorage.clear(); navigate('/'); }}
             className="btn-secondary"
-            style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
             <span>Logout</span>
           </button>
         </div>
       </nav>
 
-      {/* Main Content */}
       <main style={{ padding: '3rem 2rem', maxWidth: '1400px', margin: '0 auto', width: '100%', flex: 1 }}>
-
-        {/* Header Section */}
         <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
           <div>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px' }}>Active Auctions</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Discover and bid on exclusive items from around the world.</p>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px', color: 'var(--text-main)' }}>Active Auctions</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Premium assets for sophisticated collectors.</p>
           </div>
 
           <div style={{ display: 'flex', gap: '12px' }}>
@@ -166,7 +175,7 @@ const Lobby = () => {
               <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
                 type="text"
-                placeholder="Search auctions..."
+                placeholder="Search catalog..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ paddingLeft: '44px' }}
@@ -181,7 +190,6 @@ const Lobby = () => {
           </div>
         </div>
 
-        {/* Auctions Grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
@@ -197,16 +205,20 @@ const Lobby = () => {
                   padding: '24px',
                   display: 'flex',
                   flexDirection: 'column',
-                  transition: 'transform 0.3s ease, border-color 0.3s ease',
-                  cursor: 'pointer'
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)'
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-8px)';
-                  e.currentTarget.style.borderColor = 'var(--primary)';
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.borderColor = 'var(--text-dim)';
+                  e.currentTarget.style.boxShadow = '0 12px 24px -10px rgba(0,0,0,0.5)';
                 }}
                 onMouseOut={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = 'var(--glass-border)';
+                  e.currentTarget.style.borderColor = 'var(--border-color)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
                 onClick={() => navigate(`/room/${auction.id}`)}
               >
@@ -218,207 +230,84 @@ const Lobby = () => {
                   </div>
                 </div>
 
-                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '8px' }}>{auction.title}</h3>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-main)' }}>{auction.title}</h3>
                 <p style={{
                   color: 'var(--text-muted)',
                   fontSize: '0.875rem',
-                  marginBottom: '20px',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  height: '2.5rem'
+                  lineHeight: '1.5',
+                  marginBottom: '24px',
+                  height: '2.5rem',
+                  overflow: 'hidden'
                 }}>
-                  {auction.description || 'Step into the future of bidding with this exclusive item. High demand expected.'}
+                  {auction.description || 'Exclusive bidding opportunity available now.'}
                 </p>
 
                 <div style={{
                   marginTop: 'auto',
                   padding: '16px',
-                  background: 'rgba(15, 23, 42, 0.4)',
-                  borderRadius: '16px',
+                  background: 'rgba(2, 6, 23, 0.4)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '700' }}>Current Bid</span>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--secondary)', display: 'flex', alignItems: 'center' }}>
-                      <DollarSign size={20} />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.05em' }}>Current Bid</span>
+                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>$</span>
                       {auction.current_price}
                     </div>
                   </div>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '12px',
-                    background: 'var(--primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    boxShadow: 'var(--shadow-glow)'
-                  }}>
-                    <ChevronRight size={24} />
+                  <div 
+                    className="bid-indicator"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '8px',
+                      background: 'var(--bg-dark)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text-dim)',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <ChevronRight size={20} />
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                   <Clock size={14} />
-                  <span>Ends: {new Date(auction.end_time).toLocaleDateString()} at {new Date(auction.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>Ends: {new Date(auction.end_time).toLocaleDateString()}</span>
                 </div>
               </div>
             );
           })}
         </div>
-
-        {filteredAuctions.length === 0 && (
-          <div style={{
-            textAlign: 'center',
-            padding: '100px 40px',
-            background: 'var(--bg-dark)',
-            borderRadius: '24px',
-            border: '2px dashed var(--glass-border)'
-          }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: 'var(--bg-card)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '24px',
-              color: 'var(--text-dim)'
-            }}>
-              <Search size={40} />
-            </div>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px' }}>No auctions found</h3>
-            <p style={{ color: 'var(--text-dim)' }}>Lower your filters or try searching for something else.</p>
-            {role === 'auctioneer' && (
-              <button
-                onClick={() => setShowCreate(true)}
-                className="btn-primary"
-                style={{ marginTop: '24px', marginInline: 'auto' }}
-              >
-                <Plus size={20} />
-                Create your first auction
-              </button>
-            )}
-          </div>
-        )}
       </main>
 
-      {/* Create Auction Modal */}
-      {showCreate && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.9)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-          padding: '20px'
-        }}>
-          <div className="glass-card animate-fade-in" style={{
-            width: '100%', maxWidth: '600px', padding: '40px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-              <h2 style={{ fontSize: '1.75rem', fontWeight: '800' }}>New Auction Space</h2>
-              <button
-                onClick={() => setShowCreate(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-dim)' }}
-              >
-                <Plus size={24} style={{ transform: 'rotate(45deg)' }} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>Project Title</label>
-                <input
-                  type="text"
-                  placeholder="Vintage 1960s Rolex Submariner"
-                  value={newAuction.title}
-                  onChange={(e) => setNewAuction({ ...newAuction, title: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>Description</label>
-                <textarea
-                  placeholder="Describe the item details, history, and condition..."
-                  value={newAuction.description}
-                  onChange={(e) => setNewAuction({ ...newAuction, description: e.target.value })}
-                  style={{ minHeight: '100px' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>Starting Price ($)</label>
-                <div style={{ position: 'relative' }}>
-                  <DollarSign size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    value={newAuction.starting_price}
-                    onChange={(e) => setNewAuction({ ...newAuction, starting_price: e.target.value })}
-                    required
-                    style={{ paddingLeft: '32px' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>Expected Value ($)</label>
-                <div style={{ position: 'relative' }}>
-                  <TrendingUp size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                  <input type="number" placeholder="Optional" style={{ paddingLeft: '32px' }} />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>Start Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={newAuction.start_time}
-                  onChange={(e) => setNewAuction({ ...newAuction, start_time: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>End Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={newAuction.end_time}
-                  onChange={(e) => setNewAuction({ ...newAuction, end_time: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div style={{ gridColumn: 'span 2', display: 'flex', gap: '12px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowCreate(false)}
-                  className="btn-secondary"
-                  style={{ flex: 1 }}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" style={{ flex: 2 }}>
-                  Launch Auction
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Custom Styles for this page */}
       <style>{`
         .badge-muted {
           background: rgba(148, 163, 184, 0.1);
           color: #94a3b8;
+          border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .badge-success {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .badge-warning {
+          background: rgba(245, 158, 11, 0.1);
+          color: #f59e0b;
+          border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        .glass-card:hover .bid-indicator {
+          background: var(--text-main) !important;
+          color: var(--bg-deep) !important;
+          border-color: var(--text-main) !important;
         }
       `}</style>
     </div>
