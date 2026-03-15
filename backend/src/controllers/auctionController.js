@@ -8,7 +8,14 @@ const { redis, placeAtomicBid, setInitialPrice } = require('../utils/redis');
 exports.createAuction = async (req, res) => {
     try {
         const { title, description, starting_price, start_time, end_time } = req.body;
-        const userId = req.user.id; const pin = Math.floor(100000 + Math.random() * 900000).toString();
+        const userId = req.user.id || req.user._id;
+        
+        // Enforce auctioneer role on backend
+        if (req.user.role !== 'auctioneer') {
+            return res.status(403).json({ message: 'Only auctioneers can create auctions' });
+        }
+
+        const pin = Math.floor(100000 + Math.random() * 900000).toString();
 
         const auction = await Auction.create({
             title,
@@ -30,9 +37,42 @@ exports.createAuction = async (req, res) => {
             }
         }
 
-        res.status(201).json(auction);
+        res.status(201).json({
+            id: auction._id,
+            title: auction.title,
+            description: auction.description,
+            starting_price: auction.startingPrice,
+            current_price: auction.currentPrice,
+            start_time: auction.startTime,
+            end_time: auction.endTime,
+            status: auction.status,
+            pin: auction.pin
+        });
     } catch (error) {
+        console.error('Create Auction Error:', error);
         res.status(500).json({ message: 'Error creating auction', error: error.message });
+    }
+};
+
+// @desc    Get auctions owned by the user (with pins)
+// @route   GET /api/auctions/owned
+// @access  Private (Auctioneer)
+exports.getMyAuctions = async (req, res) => {
+    try {
+        const auctions = await Auction.find({ createdBy: req.user.id }).sort({ createdAt: -1 });
+        const modifiedAuctions = auctions.map(a => ({
+            id: a._id,
+            title: a.title,
+            description: a.description,
+            current_price: a.currentPrice,
+            start_time: a.startTime,
+            end_time: a.endTime,
+            status: a.status,
+            pin: a.pin // Return pin for the owner
+        }));
+        res.json(modifiedAuctions);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching your auctions', error: error.message });
     }
 };
 

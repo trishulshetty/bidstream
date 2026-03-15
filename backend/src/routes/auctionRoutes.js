@@ -4,6 +4,7 @@ const auctionController = require('../controllers/auctionController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 router.get('/', auctionController.getAuctions);
+router.get('/owned', authMiddleware, auctionController.getMyAuctions);
 router.get('/:id', auctionController.getAuctionById);
 
 // Protected routes

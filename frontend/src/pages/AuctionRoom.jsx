@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import io from 'socket.io-client';
 import axios from 'axios';
 import {
@@ -42,6 +42,7 @@ const Logo = ({ size = 'md' }) => {
 const AuctionRoom = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [auction, setAuction] = useState(null);
   const [pin, setPin] = useState('');
   const [isJoined, setIsJoined] = useState(false);
@@ -69,6 +70,13 @@ const AuctionRoom = () => {
 
     const newSocket = io('http://localhost:5001');
     setSocket(newSocket);
+
+    // Auto-join if PIN is provided in URL query (?pin=xxxxxx)
+    const searchParams = new URLSearchParams(location.search);
+    const urlPin = searchParams.get('pin');
+    if (urlPin && urlPin.length === 6) {
+      newSocket.emit('join_auction', { auctionId: id, pin: urlPin });
+    }
 
     newSocket.on('new_bid', (data) => {
       setBidHistory((prev) => [data, ...prev]);

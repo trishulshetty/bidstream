@@ -8,7 +8,8 @@ import {
   Users,
   Search,
   DollarSign,
-  ChevronRight
+  ChevronRight,
+  Share2
 } from 'lucide-react';
 
 const Logo = ({ size = 'md' }) => {
@@ -65,7 +66,21 @@ const Lobby = () => {
     try {
       if (!isRefreshing) setIsRefreshing(true);
       const res = await axios.get('http://localhost:5001/api/auctions');
-      setAuctions(res.data);
+      let allAuctions = res.data;
+
+      // If auctioneer, fetch owned auctions to get PINs for sharing
+      if (role === 'auctioneer' && token) {
+        try {
+          const ownedRes = await axios.get('http://localhost:5001/api/auctions/owned', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const ownedMap = {};
+          ownedRes.data.forEach(a => ownedMap[a.id] = a.pin);
+          allAuctions = allAuctions.map(a => ownedMap[a.id] ? { ...a, pin: ownedMap[a.id], isOwner: true } : a);
+        } catch (e) { console.error("Error fetching owned auctions", e); }
+      }
+
+      setAuctions(allAuctions);
     } catch (err) {
       console.error('Error fetching auctions:', err);
     } finally {
@@ -75,18 +90,36 @@ const Lobby = () => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!newAuction.title || !newAuction.description || !newAuction.starting_price || !newAuction.start_time || !newAuction.end_time) {
+        return alert('Please fill in all professional fields.');
+    }
+
+    const price = parseFloat(newAuction.starting_price);
+    if (isNaN(price) || price <= 0) {
+        return alert('Please enter a valid starting price.');
+    }
+
+    if (!token) {
+        return alert('Authentication token missing. Please log in again.');
+    }
+
     try {
       const res = await axios.post('http://localhost:5001/api/auctions',
-        { ...newAuction, starting_price: parseFloat(newAuction.starting_price) },
+        { ...newAuction, starting_price: price },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const createdAuction = res.data;
-      alert(`Auction created successfully!\n\nAccess PIN: ${createdAuction.pin}`);
+      const shareUrl = `${window.location.origin}/room/${createdAuction.id}?pin=${createdAuction.pin}`;
+      alert(`Auction created successfully!\n\nAccess PIN: ${createdAuction.pin}\n\nFast Access Link:\n${shareUrl}`);
       setShowCreate(false);
       fetchAuctions();
       setNewAuction({ title: '', description: '', starting_price: '', start_time: '', end_time: '' });
     } catch (err) {
-      alert('Error creating auction');
+      console.error('Create error:', err);
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Error creating auction';
+      alert(msg);
     }
   };
 
@@ -223,7 +256,23 @@ const Lobby = () => {
                 onClick={() => navigate(`/room/${auction.id}`)}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <span className={`badge ${status.class}`}>{status.label}</span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span className={`badge ${status.class}`}>{status.label}</span>
+                    {auction.pin && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const url = `${window.location.origin}/room/${auction.id}?pin=${auction.pin}`;
+                          navigator.clipboard.writeText(url);
+                          alert('Invite link copied to clipboard!');
+                        }}
+                        style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'none', fontSize: '0.65rem' }}
+                      >
+                        <Share2 size={12} />
+                        Copy Invite
+                      </button>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '0.875rem' }}>
                     <Users size={14} />
                     <span>8+ bidders</span>
@@ -286,6 +335,99 @@ const Lobby = () => {
             );
           })}
         </div>
+
+        {showCreate && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(2, 6, 23, 0.9)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}>
+            <div className="glass-card animate-fade-in" style={{
+              maxWidth: '500px',
+              width: '100%',
+              padding: '40px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-card)'
+            }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Create New Auction</h2>
+              <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Asset Title</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="E.g., Rare Digital Collective #01"
+                    value={newAuction.title}
+                    onChange={(e) => setNewAuction({ ...newAuction, title: e.target.value })}
+                    style={{ background: 'var(--bg-dark)' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Description</label>
+                  <textarea
+                    required
+                    placeholder="Provide professional details about the asset..."
+                    value={newAuction.description}
+                    onChange={(e) => setNewAuction({ ...newAuction, description: e.target.value })}
+                    style={{ 
+                      background: 'var(--bg-dark)', 
+                      width: '100%', 
+                      padding: '12px', 
+                      borderRadius: '4px', 
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-main)',
+                      minHeight: '100px',
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Base Price ($)</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="0.00"
+                      value={newAuction.starting_price}
+                      onChange={(e) => setNewAuction({ ...newAuction, starting_price: e.target.value })}
+                      style={{ background: 'var(--bg-dark)' }}
+                    />
+                  </div>
+                   <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Start Time</label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={newAuction.start_time}
+                      onChange={(e) => setNewAuction({ ...newAuction, start_time: e.target.value })}
+                      style={{ background: 'var(--bg-dark)' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase' }}>End Time</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={newAuction.end_time}
+                    onChange={(e) => setNewAuction({ ...newAuction, end_time: e.target.value })}
+                    style={{ background: 'var(--bg-dark)' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                  <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+                  <button type="submit" className="btn-primary" style={{ flex: 2 }}>Launch Auction</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
 
       <style>{`
