@@ -134,16 +134,23 @@ const AuctionRoom = () => {
     }
 
     const calculateTime = () => {
+      const endTimeValue = auction.end_time || auction.endTime;
+      const end = new Date(endTimeValue).getTime();
       const now = new Date().getTime();
-      const end = new Date(auction.end_time).getTime();
+      
+      if (isNaN(end)) {
+        setTimeLeft('INVALID DATE');
+        return true;
+      }
+
       const distance = end - now;
 
-      if (distance < 0) {
+      if (distance <= 0) {
         setTimeLeft('ENDED');
         return true;
       }
 
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const hours = Math.floor(distance / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
@@ -153,8 +160,13 @@ const AuctionRoom = () => {
       return false;
     };
 
-    if (calculateTime()) return;
-    const timer = setInterval(() => { if (calculateTime()) clearInterval(timer); }, 1000);
+    const isFinished = calculateTime();
+    if (isFinished) return;
+
+    const timer = setInterval(() => {
+      if (calculateTime()) clearInterval(timer);
+    }, 1000);
+
     return () => clearInterval(timer);
   }, [auction]);
 
@@ -264,7 +276,7 @@ const AuctionRoom = () => {
           <div className={`badge ${auction.status === 'ended' ? 'badge-muted' : 'badge-success'}`}>
             {auction.status === 'ended' ? 'Ended' : 'Live'}
           </div>
-          {role === 'auctioneer' && (
+          {auction?.isOwner && (
             <button 
               onClick={() => {
                 const url = `${window.location.origin}/room/${id}?pin=${verifiedPin}`;
@@ -311,7 +323,7 @@ const AuctionRoom = () => {
               <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', textTransform: 'uppercase' }}>Auction Closed</h3>
               </div>
-            ) : role === 'auctioneer' ? (
+            ) : auction.isOwner ? (
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '20px', color: 'var(--text-muted)' }}>Console</h3>
                 <button onClick={stopBidding} className="btn-primary" style={{ width: '100%', height: '56px' }}>Terminate Bidding Session</button>

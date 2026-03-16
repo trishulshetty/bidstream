@@ -8,7 +8,7 @@ const { redis, placeAtomicBid, setInitialPrice } = require('../utils/redis');
 exports.createAuction = async (req, res) => {
     try {
         const { title, description, starting_price, start_time, end_time } = req.body;
-        const userId = req.user.id || req.user._id;
+        const userId = (req.user.id || req.user._id)?.toString();
         
         // Enforce auctioneer role on backend
         if (req.user.role !== 'auctioneer') {
@@ -59,7 +59,8 @@ exports.createAuction = async (req, res) => {
 // @access  Private (Auctioneer)
 exports.getMyAuctions = async (req, res) => {
     try {
-        const auctions = await Auction.find({ createdBy: req.user.id }).sort({ createdAt: -1 });
+        const userId = (req.user.id || req.user._id)?.toString();
+        const auctions = await Auction.find({ createdBy: userId }).sort({ createdAt: -1 });
         const modifiedAuctions = auctions.map(a => ({
             id: a._id,
             title: a.title,
@@ -130,13 +131,15 @@ exports.getAuctionById = async (req, res) => {
         const requesterId = req.user.id || req.user._id?.toString();
         const isOwner = auction.createdBy.toString() === requesterId;
         
-        const { pin: auctionPin, ...rest } = auction._doc;
-        
         const result = {
             id: auction._id,
-            ...rest,
+            title: auction.title,
+            description: auction.description,
+            starting_price: auction.startingPrice,
             current_price: currentPrice,
-            // Only reveal PIN to the owner so they can bypass the entry screen
+            start_time: auction.startTime,
+            end_time: auction.endTime,
+            status: auction.status,
             pin: isOwner ? auction.pin : undefined,
             isOwner
         };
@@ -153,7 +156,7 @@ exports.getAuctionById = async (req, res) => {
 exports.placeBid = async (req, res) => {
     const { id: auctionId } = req.params;
     const { amount } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id?.toString();
     const io = req.app.get('io');
 
     try {
@@ -217,7 +220,8 @@ exports.endAuction = async (req, res) => {
         if (!auction) return res.status(404).json({ message: 'Auction not found' });
 
         // Only owner can end
-        if (auction.createdBy.toString() !== req.user.id) {
+        const userId = req.user.id || req.user._id?.toString();
+        if (auction.createdBy.toString() !== userId) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
