@@ -58,18 +58,19 @@ const AuctionRoom = () => {
   const role = localStorage.getItem('userRole');
   const token = localStorage.getItem('token');
 
+  const fetchAuction = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5001/api/auctions/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAuction(res.data);
+    } catch (err) {
+      console.error('Error fetching auction:', err);
+      setIsVerifying(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAuction = async () => {
-      try {
-        const res = await axios.get(`http://localhost:5001/api/auctions/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setAuction(res.data);
-      } catch (err) {
-        console.error('Error fetching auction:', err);
-        setIsVerifying(false);
-      }
-    };
     fetchAuction();
 
     const newSocket = io('http://localhost:5001');
@@ -77,6 +78,8 @@ const AuctionRoom = () => {
 
     newSocket.on('new_bid', (data) => {
       setBidHistory((prev) => [data, ...prev]);
+      // After a new bid, we might want to refresh to get updated winner info if needed,
+      // but for now let's just update price
       setAuction((prev) => ({ ...prev, current_price: data.amount }));
     });
 
@@ -101,6 +104,7 @@ const AuctionRoom = () => {
       if (data.auctionId === id) {
         setAuction(prev => ({ ...prev, status: data.status }));
         if (data.status === 'ended') {
+          fetchAuction(); // Refresh to get final winner details
           alert('This auction has been ended by the auctioneer.');
         }
       }
@@ -321,7 +325,26 @@ const AuctionRoom = () => {
           <div className="glass-card" style={{ padding: '2.5rem', border: '1px solid var(--border-color)' }}>
             {auction.status === 'ended' ? (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', textTransform: 'uppercase' }}>Auction Closed</h3>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '16px' }}>Auction Closed</h3>
+                {auction.winner ? (
+                  <div style={{ 
+                    background: 'rgba(16, 185, 129, 0.05)', 
+                    padding: '24px', 
+                    borderRadius: '16px', 
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                  }}>
+                    <div style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '8px' }}>
+                      <Award size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+                      Final Winner
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-main)', letterSpacing: '0.02em' }}>{auction.winner.username}</div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-dim)', marginTop: '4px' }}>Winning Bid: ${auction.winner.amount}</div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-dim)' }}>No bids were placed for this auction.</p>
+                  </div>
+                )}
               </div>
             ) : auction.isOwner ? (
               <div>
@@ -375,7 +398,7 @@ const AuctionRoom = () => {
                       <div style={{ fontSize: '0.85rem' }}>
                         <div style={{ fontWeight: '700', color: index === 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
                           {index === 0 && <Award size={14} style={{ display: 'inline', marginRight: '6px' }} />}
-                          User {bid.userId}
+                          {bid.username || `User ${bid.userId?.slice(-4) || '...'}`}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '2px' }}>Recent activity</div>
                       </div>

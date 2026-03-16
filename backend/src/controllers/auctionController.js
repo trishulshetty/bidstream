@@ -131,6 +131,22 @@ exports.getAuctionById = async (req, res) => {
         const requesterId = req.user.id || req.user._id?.toString();
         const isOwner = auction.createdBy.toString() === requesterId;
         
+        let winner = null;
+        if (auction.status === 'ended' || auction.status === 'active') {
+             // Always check for the highest bid to show the current "leader" or final "winner"
+             const topBid = await Bid.findOne({ auction: auction._id })
+                 .sort({ amount: -1 })
+                 .populate('user', 'username');
+             
+             if (topBid) {
+                 winner = {
+                     username: topBid.user.username,
+                     amount: topBid.amount,
+                     userId: topBid.user._id
+                 };
+             }
+        }
+
         const result = {
             id: auction._id,
             title: auction.title,
@@ -141,7 +157,8 @@ exports.getAuctionById = async (req, res) => {
             end_time: auction.endTime,
             status: auction.status,
             pin: isOwner ? auction.pin : undefined,
-            isOwner
+            isOwner,
+            winner
         };
 
         res.json(result);
@@ -196,6 +213,7 @@ exports.placeBid = async (req, res) => {
         io.to(`auction_${auctionId}`).emit('new_bid', {
             auctionId,
             userId,
+            username: req.user.username,
             amount,
             time: new Date()
         });
