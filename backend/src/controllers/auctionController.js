@@ -253,6 +253,10 @@ exports.endAuction = async (req, res) => {
             status: 'ended'
         });
 
+        // Clear listing cache for updated status
+        const { redis } = require('../utils/redis');
+        if (redis.status === 'ready') await redis.del('auctions:all');
+
         res.json({ message: 'Auction ended successfully', status: 'ended' });
     } catch (error) {
         res.status(500).json({ message: 'Error ending auction', error: error.message });

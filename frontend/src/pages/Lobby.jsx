@@ -128,7 +128,9 @@ const Lobby = () => {
     a.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getStatus = (start, end) => {
+  const getStatus = (start, end, manualStatus) => {
+    if (manualStatus === 'ended') return { label: 'Ended', class: 'badge-muted' };
+    
     const now = new Date();
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -229,7 +231,7 @@ const Lobby = () => {
           gap: '24px'
         }}>
           {filteredAuctions.map(auction => {
-            const status = getStatus(auction.start_time, auction.end_time);
+            const status = getStatus(auction.start_time, auction.end_time, auction.status);
             return (
               <div
                 key={auction.id}
