@@ -24,73 +24,21 @@ redis.on("error",   (e) => console.error("Redis error:", e.message));
 // ─────────────────────────────────────────────────────────────
 // Core bid processor (same logic as the simulation scripts)
 // ─────────────────────────────────────────────────────────────
+// Use the central redis utility if possible, but keep this file stand-alone for the demo if needed.
+// However, since we have src/utils/redis.js, we should use that logic.
+const { placeAtomicBid } = require("../utils/redis");
+
 async function placeBidWithRedis(auctionId, bidderId, bidAmount, retryCount = 0) {
-  const lockKey    = `auction:lock:${auctionId}`;
-  const bidKey     = `auction:currentBid:${auctionId}`;
-  const historyKey = `auction:history:${auctionId}`;
-
-  // ── Step 1: Acquire distributed lock ─────────────────────
-  const lockValue = `${bidderId}-${Date.now()}-${Math.random()}`;
-  const acquired  = await redis.set(lockKey, lockValue, "NX", "PX", 5000);
-
-  if (!acquired) {
-    if (retryCount >= 3) {
-      return { success: false, reason: "System busy. Please retry." };
-    }
-    await new Promise((r) => setTimeout(r, 50 + retryCount * 100));
-    return placeBidWithRedis(auctionId, bidderId, bidAmount, retryCount + 1);
-  }
-
-  try {
-    // ── Step 2: Read + validate ───────────────────────────────
-    await redis.watch(bidKey);
-    const currentBidStr = await redis.get(bidKey);
-    const currentBid    = currentBidStr ? parseFloat(currentBidStr) : 0;
-
-    if (bidAmount <= currentBid) {
-      await redis.unwatch();
-      return {
-        success: false,
-        reason:  `Bid ₹${bidAmount} must exceed current highest bid ₹${currentBid}`,
-        currentBid,
-      };
-    }
-
-    // ── Step 3: Atomic write ──────────────────────────────────
-    const multi = redis.multi();
-    multi.set(bidKey, bidAmount.toString());
-    multi.lpush(historyKey, JSON.stringify({
-      bidderId,
-      amount: bidAmount,
-      timestamp: new Date().toISOString(),
-    }));
-    // Set expiry on history (keep 24 hours)
-    multi.expire(historyKey, 86400);
-
-    const result = await multi.exec();
-
-    if (!result) {
-      // WATCH triggered — concurrent write happened, retry
-      return placeBidWithRedis(auctionId, bidderId, bidAmount, retryCount + 1);
-    }
-
-    // ── Step 4: Persist to your DB ────────────────────────────
-    // Uncomment and adapt to your ORM (Mongoose, Sequelize, Prisma, etc.):
-    //
-    // const Bid = require("../models/Bid");
-    // await Bid.create({ auctionId, bidderId, amount: bidAmount });
-    //
-    // Or with Mongoose:
-    // await new Bid({ auction: auctionId, bidder: bidderId, amount: bidAmount }).save();
-
+  // We use the central placeAtomicBid which uses a Lua script for 100% atomicity
+  const result = await placeAtomicBid(auctionId, bidAmount, bidderId);
+  
+  // result = 1 (success), 0 (bid too low), -1 (auction not found), -2 (error)
+  if (result === 1) {
     return { success: true, newHighest: bidAmount };
-
-  } finally {
-    // ── Step 5: Release lock (atomic via Lua) ─────────────────
-    await redis.eval(
-      `if redis.call("get",KEYS[1])==ARGV[1] then return redis.call("del",KEYS[1]) else return 0 end`,
-      1, lockKey, lockValue
-    );
+  } else if (result === 0) {
+    return { success: false, reason: "Bid must be higher than current price" };
+  } else {
+    return { success: false, reason: "Auction error or internal failure" };
   }
 }
 
