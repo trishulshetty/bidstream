@@ -69,7 +69,7 @@ const Simulator = () => {
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        const newSocket = io('http://localhost:5001');
+        const newSocket = io('http://127.0.0.1:5001');
         setSocket(newSocket);
 
         newSocket.on('sim_progress', (data) => {
@@ -91,7 +91,7 @@ const Simulator = () => {
         setIsRunning(true);
         setProgress(0);
         try {
-            await axios.post('http://localhost:5001/api/simulator/run?count=1000');
+            await axios.post('http://127.0.0.1:5001/api/simulator/run?count=1000');
         } catch (err) {
             alert('Simulation failed: ' + (err.response?.data?.message || err.message));
             setIsRunning(false);
