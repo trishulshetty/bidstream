@@ -3,6 +3,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Lobby from './pages/Lobby';
 import AuctionRoom from './pages/AuctionRoom';
+import Simulator from './pages/Simulator';
 
 function App() {
   return (
@@ -19,6 +20,9 @@ function App() {
 
         {/* The dynamic Auction Room */}
         <Route path="/room/:id" element={<AuctionRoom />} />
+
+        {/* Simulator Labs */}
+        <Route path="/simulator" element={<Simulator />} />
 
         {/* Catch-all: Redirect any weird URLs back to Home */}
         <Route path="*" element={<Navigate to="/" />} />

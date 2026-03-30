@@ -59,11 +59,18 @@ const Landing = () => {
                     </span>
                 </div>
 
-                <div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                        onClick={() => navigate('/simulator')}
+                        className="btn-secondary"
+                        style={{ padding: '0.6rem 1.5rem', fontSize: '0.75rem', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+                    >
+                        Concurrency Labs
+                    </button>
                     <button
                         onClick={() => navigate('/login')}
                         className="btn-secondary"
-                        style={{ padding: '0.6rem 1.5rem', fontSize: '0.75rem', border: '1px solid var(--border-color)' }}
+                        style={{ padding: '0.6rem 1.5rem', fontSize: '0.75rem', border: '1px solid var(--border-color)', background: 'var(--text-main)', color: 'var(--bg-deep)' }}
                     >
                         Enter Platform
                     </button>

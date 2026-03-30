@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const auctionRoutes = require('./routes/auctionRoutes');
+const simulatorRoutes = require('./routes/simulatorRoutes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/auctions', auctionRoutes);
+app.use('/api/simulator', simulatorRoutes);
 
 
 // Health check
