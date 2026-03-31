@@ -1,8 +1,58 @@
 services:
+  # Main Backend Service
+  backend:
+    build: 
+      context: ./backend
+    container_name: bidstream_backend
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - MONGO_URI=mongodb://mongo:27017/bidstream
+      - JWT_SECRET=${JWT_SECRET:-yoursecretkey}
+      - FRONTEND_URL=http://localhost:80
+      - NODE_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mongo
+      - redis
+    restart: always
+
+  # Main Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+    container_name: bidstream_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
+
+  # Databases & Caches
+  mongo:
+    image: mongo:latest
+    container_name: bidstream_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: bidstream_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  # Postgres - (Still here as legacy/optional since it's in the project)
   postgres:
     image: postgres:15-alpine
-    container_name: bidstream_db
-    restart: always
+    container_name: bidstream_postgres
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -11,16 +61,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    container_name: bidstream_redis
     restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
 
 volumes:
-  postgres_data:
+  mongo_data:
   redis_data:
+  postgres_data:
