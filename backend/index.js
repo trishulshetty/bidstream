@@ -56,6 +56,15 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('send_message', ({ auctionId, message, user }) => {
+        const payload = {
+            message,
+            user, // { username, role, id }
+            timestamp: new Date()
+        };
+        io.to(`auction_${auctionId}`).emit('receive_message', payload);
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
     });

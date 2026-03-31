@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import io from 'socket.io-client';
 import axios from 'axios';
@@ -11,7 +11,10 @@ import {
   Zap,
   TrendingUp,
   Award,
-  Share2
+  Share2,
+  MessageSquare,
+  Send,
+  Info
 } from 'lucide-react';
 
 const Logo = ({ size = 'md' }) => {
@@ -54,8 +57,12 @@ const AuctionRoom = () => {
   const [socket, setSocket] = useState(null);
   const [isVerifying, setIsVerifying] = useState(true);
   const [timeLeft, setTimeLeft] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState('');
+  const chatEndRef = useRef(null);
   
   const role = localStorage.getItem('userRole');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('token');
 
   const fetchAuction = async () => {
@@ -108,6 +115,10 @@ const AuctionRoom = () => {
           alert('This auction has been ended by the auctioneer.');
         }
       }
+    });
+
+    newSocket.on('receive_message', (payload) => {
+      setMessages(prev => [...prev, payload]);
     });
 
     return () => newSocket.close();
@@ -174,6 +185,10 @@ const AuctionRoom = () => {
     return () => clearInterval(timer);
   }, [auction]);
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const handleJoin = () => {
     if (pin.length !== 6) return setPinError('PIN must be 6 digits');
     setIsVerifying(true);
@@ -206,6 +221,24 @@ const AuctionRoom = () => {
     } catch (err) {
       alert(err.response?.data?.message || 'Error placing bid');
     }
+  };
+
+  const sendMessage = (e) => {
+    if (e) e.preventDefault();
+    if (!messageInput.trim() || !socket) return;
+
+    const payload = {
+      auctionId: id,
+      message: messageInput.trim(),
+      user: {
+        username: user.username || 'Anonymous',
+        role: role,
+        id: user.id || user._id
+      }
+    };
+
+    socket.emit('send_message', payload);
+    setMessageInput('');
   };
 
   if (!auction || isVerifying) return (
@@ -380,29 +413,29 @@ const AuctionRoom = () => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Bid Ledger */}
+          <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)', height: '240px' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <History size={18} style={{ color: 'var(--text-muted)' }} />
-              <h4 style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Bid History</h4>
+              <h4 style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Bid Ledger</h4>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
               {bidHistory.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-dim)' }}>
-                  <p style={{ fontSize: '0.8rem' }}>Awaiting initial bid...</p>
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-dim)' }}>
+                  <p style={{ fontSize: '0.75rem' }}>Awaiting initial bid...</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {bidHistory.map((bid, index) => (
-                    <div key={index} style={{ padding: '16px', borderRadius: '12px', background: index === 0 ? 'rgba(255,255,255,0.03)' : 'transparent', border: index === 0 ? '1px solid var(--border-color)' : '1px solid transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: '0.85rem' }}>
+                    <div key={index} style={{ padding: '12px 16px', borderRadius: '12px', background: index === 0 ? 'rgba(255,255,255,0.03)' : 'transparent', border: index === 0 ? '1px solid var(--border-color)' : '1px solid transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.8rem' }}>
                         <div style={{ fontWeight: '700', color: index === 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
                           {index === 0 && <Award size={14} style={{ display: 'inline', marginRight: '6px' }} />}
                           {bid.username || `User ${bid.userId?.slice(-4) || '...'}`}
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '2px' }}>Recent activity</div>
                       </div>
-                      <div style={{ fontWeight: '900', color: 'var(--text-main)', fontSize: '1rem' }}>${bid.amount}</div>
+                      <div style={{ fontWeight: '900', color: 'var(--text-main)', fontSize: '0.9rem' }}>${bid.amount}</div>
                     </div>
                   ))}
                 </div>
@@ -410,10 +443,92 @@ const AuctionRoom = () => {
             </div>
           </div>
 
+          {/* Communication Floor */}
+          <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)', minHeight: '350px' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <MessageSquare size={18} style={{ color: 'var(--text-muted)' }} />
+                <h4 style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Communication</h4>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: '700', textTransform: 'uppercase' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
+                Secure
+              </div>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px' }}>
+              {messages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-dim)' }}>
+                  <Info size={20} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                  <p style={{ fontSize: '0.7rem' }}>Secure room chat active.</p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => {
+                  const isOwner = msg.user.role === 'auctioneer';
+                  const isMe = msg.user.id === (user.id || user._id);
+                  
+                  return (
+                    <div key={idx} style={{ 
+                      alignSelf: isMe ? 'flex-end' : 'flex-start',
+                      maxWidth: '90%'
+                    }}>
+                      <div style={{ 
+                        fontSize: '0.6rem', 
+                        color: 'var(--text-dim)', 
+                        marginBottom: '2px',
+                        textAlign: isMe ? 'right' : 'left',
+                        fontWeight: '800',
+                        textTransform: 'uppercase'
+                      }}>
+                        {msg.user.username} {isOwner ? '• Console' : ''}
+                      </div>
+                      <div style={{ 
+                        padding: '8px 12px', 
+                        borderRadius: '10px',
+                        background: isOwner ? 'rgba(251, 191, 36, 0.05)' : isMe ? 'var(--primary-light)' : 'rgba(255,255,255,0.02)',
+                        border: isOwner ? '1px solid rgba(251, 191, 36, 0.2)' : isMe ? '1px solid rgba(203, 213, 225, 0.2)' : '1px solid var(--border-color)',
+                        color: isOwner ? '#fbbf24' : 'var(--text-main)',
+                        fontSize: '0.8rem',
+                        lineHeight: '1.4'
+                      }}>
+                        {msg.message}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            <form onSubmit={sendMessage} style={{ padding: '12px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px' }}>
+              <input 
+                type="text" 
+                placeholder="Message..." 
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                style={{ height: '36px', fontSize: '0.8rem', background: 'var(--bg-dark)' }}
+              />
+              <button type="submit" style={{ 
+                width: '36px', 
+                height: '36px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                background: 'var(--primary)',
+                color: 'var(--bg-deep)',
+                border: 'none',
+                borderRadius: 'var(--radius-sm)'
+              }}>
+                <Send size={14} />
+              </button>
+            </form>
+          </div>
+
+          {/* Time Remaining */}
           <div className="glass-card" style={{ padding: '24px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', marginBottom: '12px' }}>
               <Clock size={18} />
-              <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.1em' }}>Time Remaining</span>
+              <span style={{ fontWeight: '800', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.1em' }}>Session Expiry</span>
             </div>
             <div style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--text-main)', fontFamily: 'monospace' }}>{timeLeft}</div>
           </div>
