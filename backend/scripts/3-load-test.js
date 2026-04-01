@@ -1,23 +1,4 @@
-/**
- * BidStream — Script 3: Load Test (1000 Bids)
- * =============================================
- * DROP THIS IN:  backend/scripts/3-load-test.js
- * RUN WITH:      node scripts/3-load-test.js
- *             or node scripts/3-load-test.js --bids=500
- *             or node scripts/3-load-test.js --bids=1000 --batch=50
- *
- * This is your answer when the interviewer asks:
- * "How do you verify 1000 transactions at once?"
- *
- * What it shows:
- *   ✅ All bids processed with zero data corruption
- *   ✅ Live progress bar (looks great in interview)
- *   ✅ Bids/second throughput
- *   ✅ Integrity report — every accepted bid in ascending order
- *   ✅ Exact Redis commands count
- *
- * Connects to your real local-redis Docker container.
- */
+
 
 const Redis = require("ioredis");
 
