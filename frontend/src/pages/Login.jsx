@@ -1,13 +1,14 @@
+import { API_URL } from '../config';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Mail, Lock, User, Briefcase, AlertCircle, ArrowRight } from 'lucide-react';
 
 const Logo = ({ size = 'md' }) => {
-  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } : 
-                     size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' }  :
-                     { container: '36px', inner: '14px', radius: '10px' };
-  
+  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } :
+    size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' } :
+      { container: '36px', inner: '14px', radius: '10px' };
+
   return (
     <div style={{
       width: dimensions.container,
@@ -20,9 +21,9 @@ const Logo = ({ size = 'md' }) => {
       boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
       margin: '0 auto'
     }}>
-      <div style={{ 
-        width: dimensions.inner, 
-        height: dimensions.inner, 
+      <div style={{
+        width: dimensions.inner,
+        height: dimensions.inner,
         background: 'var(--bg-deep)',
         borderRadius: '2px'
       }} />
@@ -53,7 +54,7 @@ const Login = () => {
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
 
     try {
-      const res = await axios.post(`http://localhost:5001${endpoint}`, formData);
+      const res = await axios.post(`${API_URL}${endpoint}`, formData);
       if (isLogin) {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('userRole', res.data.user.role);
@@ -88,10 +89,10 @@ const Login = () => {
       }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <Logo size="lg" />
-          <h1 style={{ 
-            fontSize: '2rem', 
-            fontWeight: '800', 
-            letterSpacing: '0.05em', 
+          <h1 style={{
+            fontSize: '2rem',
+            fontWeight: '800',
+            letterSpacing: '0.05em',
             margin: '24px 0 8px',
             color: 'var(--text-main)',
             fontFamily: "'Bricolage Grotesque', sans-serif",

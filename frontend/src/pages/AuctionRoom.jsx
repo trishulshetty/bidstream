@@ -1,3 +1,4 @@
+import { API_URL } from '../config';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import io from 'socket.io-client';
@@ -18,10 +19,10 @@ import {
 } from 'lucide-react';
 
 const Logo = ({ size = 'md' }) => {
-  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } : 
-                     size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' }  :
-                     { container: '36px', inner: '14px', radius: '10px' };
-  
+  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } :
+    size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' } :
+      { container: '36px', inner: '14px', radius: '10px' };
+
   return (
     <div style={{
       width: dimensions.container,
@@ -33,9 +34,9 @@ const Logo = ({ size = 'md' }) => {
       justifyContent: 'center',
       boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
     }}>
-      <div style={{ 
-        width: dimensions.inner, 
-        height: dimensions.inner, 
+      <div style={{
+        width: dimensions.inner,
+        height: dimensions.inner,
         background: 'var(--bg-deep)',
         borderRadius: '2px'
       }} />
@@ -60,14 +61,14 @@ const AuctionRoom = () => {
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
   const chatEndRef = useRef(null);
-  
+
   const role = localStorage.getItem('userRole');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('token');
 
   const fetchAuction = async () => {
     try {
-      const res = await axios.get(`http://localhost:5001/api/auctions/${id}`, {
+      const res = await axios.get(`${API_URL}/api/auctions/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAuction(res.data);
@@ -80,7 +81,7 @@ const AuctionRoom = () => {
   useEffect(() => {
     fetchAuction();
 
-    const newSocket = io('http://localhost:5001');
+    const newSocket = io(API_URL);
     setSocket(newSocket);
 
     newSocket.on('new_bid', (data) => {
@@ -130,7 +131,7 @@ const AuctionRoom = () => {
 
     const searchParams = new URLSearchParams(location.search);
     const urlPin = searchParams.get('pin');
-    
+
     if (auction.pin) {
       // Owner bypass
       socket.emit('join_auction', { auctionId: id, pin: auction.pin });
@@ -152,7 +153,7 @@ const AuctionRoom = () => {
       const endTimeValue = auction.end_time || auction.endTime;
       const end = new Date(endTimeValue).getTime();
       const now = new Date().getTime();
-      
+
       if (isNaN(end)) {
         setTimeLeft('INVALID DATE');
         return true;
@@ -198,7 +199,7 @@ const AuctionRoom = () => {
   const stopBidding = async () => {
     if (!window.confirm('End this auction?')) return;
     try {
-      await axios.post(`http://localhost:5001/api/auctions/${id}/end`, {}, {
+      await axios.post(`${API_URL}/api/auctions/${id}/end`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (err) {
@@ -213,7 +214,7 @@ const AuctionRoom = () => {
 
     try {
       await axios.post(
-        `http://localhost:5001/api/auctions/${id}/bid`,
+        `${API_URL}/api/auctions/${id}/bid`,
         { amount: parseFloat(bidAmount) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -293,9 +294,9 @@ const AuctionRoom = () => {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <Logo size="sm" />
-            <span style={{ 
-              fontSize: '1.2rem', 
-              fontWeight: '800', 
+            <span style={{
+              fontSize: '1.2rem',
+              fontWeight: '800',
               letterSpacing: '0.05em',
               fontFamily: "'Bricolage Grotesque', sans-serif",
               color: 'var(--text-main)',
@@ -314,7 +315,7 @@ const AuctionRoom = () => {
             {auction.status === 'ended' ? 'Ended' : 'Live'}
           </div>
           {auction?.isOwner && (
-            <button 
+            <button
               onClick={() => {
                 const url = `${window.location.origin}/room/${id}?pin=${verifiedPin}`;
                 navigator.clipboard.writeText(url);
@@ -341,7 +342,7 @@ const AuctionRoom = () => {
       </nav>
 
       <main style={{ flex: 1, padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div className="glass-card" style={{ padding: '4rem 3rem', textAlign: 'center', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.15em' }}>Current Valuation</span>
@@ -360,10 +361,10 @@ const AuctionRoom = () => {
               <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '16px' }}>Auction Closed</h3>
                 {auction.winner ? (
-                  <div style={{ 
-                    background: 'rgba(16, 185, 129, 0.05)', 
-                    padding: '24px', 
-                    borderRadius: '16px', 
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.05)',
+                    padding: '24px',
+                    borderRadius: '16px',
                     border: '1px solid rgba(16, 185, 129, 0.2)',
                   }}>
                     <div style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '8px' }}>
@@ -401,7 +402,7 @@ const AuctionRoom = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                   {[10, 50, 100].map(inc => (
-                    <button key={inc} onClick={() => setBidAmount(auction.current_price + inc)} 
+                    <button key={inc} onClick={() => setBidAmount(auction.current_price + inc)}
                       style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: '700' }}>
                       +${inc}
                     </button>
@@ -466,15 +467,15 @@ const AuctionRoom = () => {
                 messages.map((msg, idx) => {
                   const isOwner = msg.user.role === 'auctioneer';
                   const isMe = msg.user.id === (user.id || user._id);
-                  
+
                   return (
-                    <div key={idx} style={{ 
+                    <div key={idx} style={{
                       alignSelf: isMe ? 'flex-end' : 'flex-start',
                       maxWidth: '90%'
                     }}>
-                      <div style={{ 
-                        fontSize: '0.6rem', 
-                        color: 'var(--text-dim)', 
+                      <div style={{
+                        fontSize: '0.6rem',
+                        color: 'var(--text-dim)',
                         marginBottom: '2px',
                         textAlign: isMe ? 'right' : 'left',
                         fontWeight: '800',
@@ -482,8 +483,8 @@ const AuctionRoom = () => {
                       }}>
                         {msg.user.username} {isOwner ? '• Console' : ''}
                       </div>
-                      <div style={{ 
-                        padding: '8px 12px', 
+                      <div style={{
+                        padding: '8px 12px',
                         borderRadius: '10px',
                         background: isOwner ? 'rgba(251, 191, 36, 0.05)' : isMe ? 'var(--primary-light)' : 'rgba(255,255,255,0.02)',
                         border: isOwner ? '1px solid rgba(251, 191, 36, 0.2)' : isMe ? '1px solid rgba(203, 213, 225, 0.2)' : '1px solid var(--border-color)',
@@ -501,18 +502,18 @@ const AuctionRoom = () => {
             </div>
 
             <form onSubmit={sendMessage} style={{ padding: '12px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px' }}>
-              <input 
-                type="text" 
-                placeholder="Message..." 
+              <input
+                type="text"
+                placeholder="Message..."
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 style={{ height: '36px', fontSize: '0.8rem', background: 'var(--bg-dark)' }}
               />
-              <button type="submit" style={{ 
-                width: '36px', 
-                height: '36px', 
-                display: 'flex', 
-                alignItems: 'center', 
+              <button type="submit" style={{
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 background: 'var(--primary)',
                 color: 'var(--bg-deep)',

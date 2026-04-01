@@ -1,3 +1,4 @@
+import { API_URL } from '../config';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -13,10 +14,10 @@ import {
 } from 'lucide-react';
 
 const Logo = ({ size = 'md' }) => {
-  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } : 
-                     size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' }  :
-                     { container: '36px', inner: '14px', radius: '10px' };
-  
+  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } :
+    size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' } :
+      { container: '36px', inner: '14px', radius: '10px' };
+
   return (
     <div style={{
       width: dimensions.container,
@@ -28,9 +29,9 @@ const Logo = ({ size = 'md' }) => {
       justifyContent: 'center',
       boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
     }}>
-      <div style={{ 
-        width: dimensions.inner, 
-        height: dimensions.inner, 
+      <div style={{
+        width: dimensions.inner,
+        height: dimensions.inner,
         background: 'var(--bg-deep)',
         borderRadius: '2px'
       }} />
@@ -65,13 +66,13 @@ const Lobby = () => {
   const fetchAuctions = async () => {
     try {
       if (!isRefreshing) setIsRefreshing(true);
-      const res = await axios.get('http://localhost:5001/api/auctions');
+      const res = await axios.get(`${API_URL}/api/auctions`);
       let allAuctions = res.data;
 
       // If auctioneer, fetch owned auctions to get PINs for sharing
       if (role === 'auctioneer' && token) {
         try {
-          const ownedRes = await axios.get('http://localhost:5001/api/auctions/owned', {
+          const ownedRes = await axios.get(`${API_URL}/api/auctions/owned`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const ownedMap = {};
@@ -90,23 +91,23 @@ const Lobby = () => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!newAuction.title || !newAuction.description || !newAuction.starting_price || !newAuction.start_time || !newAuction.end_time) {
-        return alert('Please fill in all professional fields.');
+      return alert('Please fill in all professional fields.');
     }
 
     const price = parseFloat(newAuction.starting_price);
     if (isNaN(price) || price <= 0) {
-        return alert('Please enter a valid starting price.');
+      return alert('Please enter a valid starting price.');
     }
 
     if (!token) {
-        return alert('Authentication token missing. Please log in again.');
+      return alert('Authentication token missing. Please log in again.');
     }
 
     try {
-      const res = await axios.post('http://localhost:5001/api/auctions',
+      const res = await axios.post(`${API_URL}/api/auctions`,
         { ...newAuction, starting_price: price },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -130,7 +131,7 @@ const Lobby = () => {
 
   const getStatus = (start, end, manualStatus) => {
     if (manualStatus === 'ended') return { label: 'Ended', class: 'badge-muted' };
-    
+
     const now = new Date();
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -155,9 +156,9 @@ const Lobby = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <Logo />
-          <span style={{ 
-            fontSize: '1.4rem', 
-            fontWeight: '800', 
+          <span style={{
+            fontSize: '1.4rem',
+            fontWeight: '800',
             letterSpacing: '0.05em',
             fontFamily: "'Bricolage Grotesque', sans-serif",
             color: 'var(--text-main)',
@@ -261,7 +262,7 @@ const Lobby = () => {
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <span className={`badge ${status.class}`}>{status.label}</span>
                     {auction.pin && (
-                      <button 
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           const url = `${window.location.origin}/room/${auction.id}?pin=${auction.pin}`;
@@ -310,7 +311,7 @@ const Lobby = () => {
                       {auction.current_price}
                     </div>
                   </div>
-                  <div 
+                  <div
                     className="bid-indicator"
                     style={{
                       width: '40px',
@@ -377,11 +378,11 @@ const Lobby = () => {
                     placeholder="Provide professional details about the asset..."
                     value={newAuction.description}
                     onChange={(e) => setNewAuction({ ...newAuction, description: e.target.value })}
-                    style={{ 
-                      background: 'var(--bg-dark)', 
-                      width: '100%', 
-                      padding: '12px', 
-                      borderRadius: '4px', 
+                    style={{
+                      background: 'var(--bg-dark)',
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '4px',
                       border: '1px solid var(--border-color)',
                       color: 'var(--text-main)',
                       minHeight: '100px',
@@ -401,7 +402,7 @@ const Lobby = () => {
                       style={{ background: 'var(--bg-dark)' }}
                     />
                   </div>
-                   <div>
+                  <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Start Time</label>
                     <input
                       type="datetime-local"

@@ -1,63 +1,64 @@
+import { API_URL } from '../config';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import axios from 'axios';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+import {
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Zap, 
-  ShieldCheck, 
-  History, 
-  AlertTriangle, 
-  Activity, 
-  TrendingUp,
-  Cpu,
-  ArrowLeft,
-  Play
+import {
+    Zap,
+    ShieldCheck,
+    History,
+    AlertTriangle,
+    Activity,
+    TrendingUp,
+    Cpu,
+    ArrowLeft,
+    Play
 } from 'lucide-react';
 
 const Logo = ({ size = 'md' }) => {
-  const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } : 
-                     size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' }  :
-                     { container: '36px', inner: '14px', radius: '10px' };
-  
-  return (
-    <div style={{
-      width: dimensions.container,
-      height: dimensions.container,
-      borderRadius: dimensions.radius,
-      background: 'var(--text-main)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-    }}>
-      <div style={{ 
-        width: dimensions.inner, 
-        height: dimensions.inner, 
-        background: 'var(--bg-deep)',
-        borderRadius: '2px'
-      }} />
-    </div>
-  );
+    const dimensions = size === 'lg' ? { container: '48px', inner: '18px', radius: '12px' } :
+        size === 'sm' ? { container: '28px', inner: '10px', radius: '6px' } :
+            { container: '36px', inner: '14px', radius: '10px' };
+
+    return (
+        <div style={{
+            width: dimensions.container,
+            height: dimensions.container,
+            borderRadius: dimensions.radius,
+            background: 'var(--text-main)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }}>
+            <div style={{
+                width: dimensions.inner,
+                height: dimensions.inner,
+                background: 'var(--bg-deep)',
+                borderRadius: '2px'
+            }} />
+        </div>
+    );
 };
 
 const StatCard = ({ title, value, icon: Icon, color, subValue }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="glass-card" 
-    style={{ padding: '24px', borderLeft: `4px solid ${color}`, flex: 1, minWidth: '200px' }}
-  >
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-      <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
-      <Icon size={18} style={{ color }} />
-    </div>
-    <div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text-main)', fontFamily: 'monospace' }}>{value}</div>
-    {subValue && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{subValue}</div>}
-  </motion.div>
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card"
+        style={{ padding: '24px', borderLeft: `4px solid ${color}`, flex: 1, minWidth: '200px' }}
+    >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
+            <Icon size={18} style={{ color }} />
+        </div>
+        <div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text-main)', fontFamily: 'monospace' }}>{value}</div>
+        {subValue && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{subValue}</div>}
+    </motion.div>
 );
 
 const Simulator = () => {
@@ -69,7 +70,7 @@ const Simulator = () => {
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        const newSocket = io('http://127.0.0.1:5001');
+        const newSocket = io(API_URL);
         setSocket(newSocket);
 
         newSocket.on('sim_progress', (data) => {
@@ -91,7 +92,7 @@ const Simulator = () => {
         setIsRunning(true);
         setProgress(0);
         try {
-            await axios.post('http://127.0.0.1:5001/api/simulator/run?count=1000');
+            await axios.post(`${API_URL}/api/simulator/run?count=1000`);
         } catch (err) {
             alert('Simulation failed: ' + (err.response?.data?.message || err.message));
             setIsRunning(false);
@@ -123,9 +124,9 @@ const Simulator = () => {
                     </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <Logo size="sm" />
-                        <span style={{ 
-                            fontSize: '1.5rem', 
-                            fontWeight: '800', 
+                        <span style={{
+                            fontSize: '1.5rem',
+                            fontWeight: '800',
                             letterSpacing: '0.05em',
                             fontFamily: "'Bricolage Grotesque', sans-serif",
                             color: 'var(--text-main)',
@@ -146,16 +147,16 @@ const Simulator = () => {
                 <header style={{ marginBottom: '4rem' }}>
                     <h1 style={{ fontSize: '3.5rem', fontWeight: '800', marginBottom: '1rem', color: 'var(--text-main)' }}>Concurrency Lab</h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '700px' }}>
-                        Visualizing the impact of Distributed Locks and Atomic Operations in a high-frequency bidding environment. 
+                        Visualizing the impact of Distributed Locks and Atomic Operations in a high-frequency bidding environment.
                         We contrast a standard application-level database logic against Redis-backed Lua execution.
                     </p>
                 </header>
 
                 {!report && !isRunning && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="glass-card" 
+                        className="glass-card"
                         style={{ padding: '6rem 4rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border-color)' }}
                     >
                         <div style={{ background: 'var(--primary-light)', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem' }}>
@@ -165,9 +166,9 @@ const Simulator = () => {
                         <p style={{ color: 'var(--text-muted)', marginBottom: '3rem', maxWidth: '500px', marginInline: 'auto' }}>
                             Launching this test will initiate 1,000 concurrent bid requests across two independent architecture scenarios.
                         </p>
-                        <button 
+                        <button
                             onClick={startSimulation}
-                            className="btn-primary" 
+                            className="btn-primary"
                             style={{ height: '72px', paddingInline: '4rem', fontSize: '1.1rem', borderRadius: '12px', boxShadow: '0 0 30px rgba(203, 213, 225, 0.1)' }}
                         >
                             <Play size={24} fill="currentColor" /> INITIATE STRESS TEST
@@ -182,9 +183,9 @@ const Simulator = () => {
                                 Executing {currentStage?.toUpperCase()} Simulation
                             </div>
                             <div style={{ height: '8px', background: 'var(--bg-dark)', borderRadius: '10px', overflow: 'hidden', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
-                                <motion.div 
-                                    animate={{ width: `${progress}%` }} 
-                                    style={{ height: '100%', background: 'var(--primary)', boxShadow: '0 0 20px var(--primary)' }} 
+                                <motion.div
+                                    animate={{ width: `${progress}%` }}
+                                    style={{ height: '100%', background: 'var(--primary)', boxShadow: '0 0 20px var(--primary)' }}
                                 />
                             </div>
                             <div style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--text-main)' }}>{Math.round(progress)}%</div>
@@ -205,27 +206,27 @@ const Simulator = () => {
                 {report && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
                         <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                             <StatCard 
-                                title="Throughput (Redis)" 
-                                value={`${report.redis.throughput}`} 
+                            <StatCard
+                                title="Throughput (Redis)"
+                                value={`${report.redis.throughput}`}
                                 subValue="Transactions per sec"
-                                icon={Zap} 
-                                color="#10b981" 
-                             />
-                             <StatCard 
-                                title="Integrity Score" 
-                                value="100%" 
+                                icon={Zap}
+                                color="#10b981"
+                            />
+                            <StatCard
+                                title="Integrity Score"
+                                value="100%"
                                 subValue="Zero Data Corruption"
-                                icon={ShieldCheck} 
-                                color="#3b82f6" 
-                             />
-                             <StatCard 
-                                title="Naive Failures" 
-                                value={`${report.naive.lostUpdates + report.naive.integrityErrors}`} 
+                                icon={ShieldCheck}
+                                color="#3b82f6"
+                            />
+                            <StatCard
+                                title="Naive Failures"
+                                value={`${report.naive.lostUpdates + report.naive.integrityErrors}`}
                                 subValue="Race Condition Artifacts"
-                                icon={AlertTriangle} 
-                                color="#ef4444" 
-                             />
+                                icon={AlertTriangle}
+                                color="#ef4444"
+                            />
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
@@ -240,7 +241,7 @@ const Simulator = () => {
                                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                                             <XAxis dataKey="name" stroke="var(--text-dim)" fontSize={12} />
                                             <YAxis stroke="var(--text-dim)" fontSize={12} />
-                                            <Tooltip 
+                                            <Tooltip
                                                 contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
                                                 itemStyle={{ color: 'var(--text-main)' }}
                                             />
@@ -269,9 +270,9 @@ const Simulator = () => {
                                     </div>
                                 </div>
 
-                                <button 
+                                <button
                                     onClick={startSimulation}
-                                    className="btn-secondary" 
+                                    className="btn-secondary"
                                     style={{ height: '60px', width: '100%', borderRadius: '12px' }}
                                 >
                                     RERUN EXPERIMENT

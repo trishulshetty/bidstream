@@ -20,7 +20,13 @@ const limiter = rateLimit({
 app.use(helmet());
 app.use(limiter);
 app.use(morgan('dev'));
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://bidstream-frontend.s3-website.ap-south-1.amazonaws.com'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 
