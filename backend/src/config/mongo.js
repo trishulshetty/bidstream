@@ -20,9 +20,11 @@ const connectDB = async () => {
         // Settings for more resilient connection
         const options = {
             serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+            writeConcern: { w: 'majority' }, // Force correct write concern to fix typos in ENV
         };
 
-        const conn = await mongoose.connect(process.env.MONGO_URI, options);
+        const mongoUri = process.env.MONGO_URI ? process.env.MONGO_URI.replace(/>/g, '').trim() : '';
+        const conn = await mongoose.connect(mongoUri, options);
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {
         if (error.message.includes('querySrv EREFUSED')) {
