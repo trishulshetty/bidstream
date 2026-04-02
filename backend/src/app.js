@@ -12,7 +12,7 @@ const app = express();
 // Rate Limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 2000, // Increased limit for development/testing
     message: 'Too many requests from this IP, please try again after 15 minutes'
 });
 
@@ -20,11 +20,22 @@ const limiter = rateLimit({
 app.use(helmet());
 app.use(limiter);
 app.use(morgan('dev'));
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://bidstream-frontend.s3-website.ap-south-1.amazonaws.com'
+];
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://bidstream-frontend.s3-website.ap-south-1.amazonaws.com'
-  ],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());

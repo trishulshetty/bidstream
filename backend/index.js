@@ -17,8 +17,19 @@ connectMongoDB();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: process.env.FRONTEND_URL || "http://localhost:5173",
-        methods: ["GET", "POST"]
+        origin: function(origin, callback) {
+            const allowedOrigins = [
+                'http://localhost:5173',
+                'http://bidstream-frontend.s3-website.ap-south-1.amazonaws.com'
+            ];
+            if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
