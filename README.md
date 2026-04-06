@@ -43,7 +43,7 @@ This will start PostgreSQL (port 5432) and Redis (port 6379).
    ```bash
    npm run dev
    ```
-   *The server runs on http://localhost:5001*
+   *The server runs on http://localhost:3000*
 
 ### 4. Frontend Setup
 1. Navigate to the frontend directory:

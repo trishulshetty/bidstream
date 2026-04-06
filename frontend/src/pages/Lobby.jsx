@@ -140,15 +140,19 @@ const Lobby = () => {
 
     try {
       setDeletingAuctionId(auctionId);
-      await axios.delete(`${API_URL}/api/auctions/${auctionId}`, {
+      console.log(`🚀 Sending DELETE request for auction: ${auctionId}`);
+      
+      const response = await axios.delete(`${API_URL}/api/auctions/${auctionId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log('✅ Delete response:', response.data);
       setAuctions((prev) => prev.filter((auction) => auction.id !== auctionId));
+      alert('Auction deleted successfully.');
     } catch (err) {
-      console.error('Delete error:', err);
-      const msg = err.response?.data?.error || err.response?.data?.message || 'Error deleting auction';
-      alert(msg);
+      console.error('❌ Delete error details:', err.response || err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Error deleting auction';
+      alert(`Delete Failed: ${msg}`);
     } finally {
       setDeletingAuctionId(null);
     }

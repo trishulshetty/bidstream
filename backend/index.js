@@ -39,7 +39,7 @@ const { pubClient, subClient } = require('./src/utils/redis');
 io.adapter(createAdapter(pubClient, subClient));
 console.log('🚀 Socket.io Redis Adapter initialized');
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 3000;
 
 // Socket.io Connection Logic
 io.on('connection', (socket) => {

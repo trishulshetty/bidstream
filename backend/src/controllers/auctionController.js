@@ -268,32 +268,79 @@ exports.endAuction = async (req, res) => {
 // @access  Private (Auctioneer owner only)
 exports.deleteAuction = async (req, res) => {
     try {
-        const auction = await Auction.findById(req.params.id);
-        if (!auction) return res.status(404).json({ message: 'Auction not found' });
-
-        const userId = req.user.id || req.user._id?.toString();
-        if (req.user.role !== 'auctioneer' || auction.createdBy.toString() !== userId) {
-            return res.status(403).json({ message: 'Not authorized to delete this auction' });
+        const { id } = req.params;
+        console.log(`🗑️ Attempting to delete auction: ${id}`);
+        
+        const auction = await Auction.findById(id);
+        if (!auction) {
+            return res.status(404).json({ message: 'Auction not found in database' });
         }
 
-        await Bid.deleteMany({ auction: auction._id });
-        await auction.deleteOne();
+        const userId = (req.user.id || req.user._id)?.toString();
+        const isAdmin = req.user.role === 'auctioneer';
+        const isOwner = auction.createdBy.toString() === userId;
 
-        if (redis.status === 'ready') {
-            await Promise.all([
-                redis.del('auctions:all'),
-                redis.del(`auction:${req.params.id}:price`),
-                redis.del(`auction:${req.params.id}:price:last_bidder`)
-            ]);
+        console.log(`👤 User: ${userId}, Role: ${req.user.role}, isAdmin: ${isAdmin}, isOwner: ${isOwner}`);
+
+        if (!isAdmin || !isOwner) {
+            console.warn(`⚠️ Unauthorized delete attempt by user ${userId} on auction ${id}. Role check: ${isAdmin}, Owner check: ${isOwner}`);
+            return res.status(403).json({ 
+                success: false,
+                message: 'Not authorized to delete this auction. Must be the creator and have auctioneer role.',
+                debug: { isAdmin, isOwner, role: req.user.role }
+            });
         }
 
+        // 1. Delete associated bids first
+        try {
+            const bidResult = await Bid.deleteMany({ auction: id });
+            console.log(`✅ Deleted ${bidResult.deletedCount || 0} bids for auction ${id}`);
+        } catch (bidErr) {
+            console.warn(`⚠️ Bid deletion failure: ${bidErr.message}`);
+            // Non-critical, we continue with auction deletion
+        }
+
+        // 2. Delete the auction itself
+        const deleteResult = await Auction.findByIdAndDelete(id);
+        if (!deleteResult) {
+            return res.status(404).json({ message: 'Auction was already deleted!' });
+        }
+        console.log(`✅ Auction ${id} deleted successfully from database`);
+
+        // 3. Redis cleanup
+        // Re-check redis status as a safeguard
+        if (redis && redis.status === 'ready') {
+            try {
+                await Promise.all([
+                    redis.del('auctions:all'),
+                    redis.del(`auction:${id}:price`),
+                    redis.del(`auction:${id}:price:last_bidder`)
+                ]);
+                console.log(`✅ Redis cache cleared for auction ${id}`);
+            } catch (redisError) {
+                console.warn(`⚠️ Redis cleanup failed: ${redisError.message}`);
+            }
+        }
+
+        // 4. Notify active rooms
         const io = req.app.get('io');
-        io.to(`auction_${req.params.id}`).emit('auction_deleted', {
-            auctionId: req.params.id
-        });
+        if (io) {
+            try {
+                io.to(`auction_${id}`).emit('auction_deleted', { auctionId: id });
+                console.log(`📢 Broadcasted deletion of auction ${id}`);
+            } catch (socketError) {
+                console.warn(`⚠️ Socket emit failed: ${socketError.message}`);
+            }
+        }
 
-        res.json({ message: 'Auction deleted successfully' });
+        res.json({ message: 'Auction deleted successfully', id });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting auction', error: error.message });
+        console.error('❌ Delete Auction Error:', error);
+        res.status(500).json({ 
+            success: false,
+            message: `Internal error during deletion: ${error.message}`, 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+        });
     }
 };
