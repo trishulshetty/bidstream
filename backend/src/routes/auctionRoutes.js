@@ -11,5 +11,6 @@ router.get('/:id', authMiddleware, auctionController.getAuctionById);
 router.post('/', authMiddleware, auctionController.createAuction);
 router.post('/:id/bid', authMiddleware, auctionController.placeBid);
 router.post('/:id/end', authMiddleware, auctionController.endAuction);
+router.delete('/:id', authMiddleware, auctionController.deleteAuction);
 
 module.exports = router;

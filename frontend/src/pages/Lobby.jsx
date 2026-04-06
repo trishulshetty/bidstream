@@ -8,9 +8,9 @@ import {
   Clock,
   Users,
   Search,
-  DollarSign,
   ChevronRight,
-  Share2
+  Share2,
+  Trash2
 } from 'lucide-react';
 
 const Logo = ({ size = 'md' }) => {
@@ -43,6 +43,7 @@ const Lobby = () => {
   const [auctions, setAuctions] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deletingAuctionId, setDeletingAuctionId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [newAuction, setNewAuction] = useState({
     title: '',
@@ -128,6 +129,30 @@ const Lobby = () => {
     a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     a.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleDeleteAuction = async (auctionId, auctionTitle) => {
+    if (!token) {
+      return alert('Authentication token missing. Please log in again.');
+    }
+
+    const confirmed = window.confirm(`Delete "${auctionTitle}" permanently from the database? This cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingAuctionId(auctionId);
+      await axios.delete(`${API_URL}/api/auctions/${auctionId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setAuctions((prev) => prev.filter((auction) => auction.id !== auctionId));
+    } catch (err) {
+      console.error('Delete error:', err);
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Error deleting auction';
+      alert(msg);
+    } finally {
+      setDeletingAuctionId(null);
+    }
+  };
 
   const getStatus = (start, end, manualStatus) => {
     if (manualStatus === 'ended') return { label: 'Ended', class: 'badge-muted' };
@@ -273,6 +298,32 @@ const Lobby = () => {
                       >
                         <Share2 size={12} />
                         Copy Invite
+                      </button>
+                    )}
+                    {auction.isOwner && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAuction(auction.id, auction.title);
+                        }}
+                        disabled={deletingAuctionId === auction.id}
+                        style={{
+                          background: 'rgba(220, 38, 38, 0.12)',
+                          border: '1px solid rgba(248, 113, 113, 0.35)',
+                          color: '#fca5a5',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          cursor: deletingAuctionId === auction.id ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          textTransform: 'none',
+                          fontSize: '0.65rem',
+                          opacity: deletingAuctionId === auction.id ? 0.7 : 1
+                        }}
+                      >
+                        <Trash2 size={12} />
+                        {deletingAuctionId === auction.id ? 'Deleting...' : 'Delete'}
                       </button>
                     )}
                   </div>

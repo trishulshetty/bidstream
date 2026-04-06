@@ -262,3 +262,38 @@ exports.endAuction = async (req, res) => {
         res.status(500).json({ message: 'Error ending auction', error: error.message });
     }
 };
+
+// @desc    Delete auction
+// @route   DELETE /api/auctions/:id
+// @access  Private (Auctioneer owner only)
+exports.deleteAuction = async (req, res) => {
+    try {
+        const auction = await Auction.findById(req.params.id);
+        if (!auction) return res.status(404).json({ message: 'Auction not found' });
+
+        const userId = req.user.id || req.user._id?.toString();
+        if (req.user.role !== 'auctioneer' || auction.createdBy.toString() !== userId) {
+            return res.status(403).json({ message: 'Not authorized to delete this auction' });
+        }
+
+        await Bid.deleteMany({ auction: auction._id });
+        await auction.deleteOne();
+
+        if (redis.status === 'ready') {
+            await Promise.all([
+                redis.del('auctions:all'),
+                redis.del(`auction:${req.params.id}:price`),
+                redis.del(`auction:${req.params.id}:price:last_bidder`)
+            ]);
+        }
+
+        const io = req.app.get('io');
+        io.to(`auction_${req.params.id}`).emit('auction_deleted', {
+            auctionId: req.params.id
+        });
+
+        res.json({ message: 'Auction deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting auction', error: error.message });
+    }
+};
